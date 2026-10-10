@@ -28,8 +28,12 @@ describe("ModuleTopics", () => {
 
     const titleInput = await screen.findByRole("textbox", { name: "New topic name" });
     await user.type(titleInput, "Week one");
+    await user.type(screen.getByRole("textbox", { name: "New topic description (optional)" }), "An overview of early events");
     await user.click(screen.getByRole("button", { name: "Add topic" }));
     await screen.findByText("Week one");
+    expect(await moduleDatabase.topics.where("moduleId").equals("module-topics-ui").first()).toMatchObject({
+      description: "An overview of early events",
+    });
 
     await user.clear(titleInput);
     await user.type(titleInput, "Week two");

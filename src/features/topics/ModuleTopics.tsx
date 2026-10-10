@@ -14,8 +14,10 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
   const [editingId, setEditingId] = useState("");
   const [editingTitle, setEditingTitle] = useState("");
+  const [editingDescription, setEditingDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
   const loadTopics = useCallback(async () => {
@@ -43,8 +45,9 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
     setSaving(true);
     setError("");
     try {
-      await topicService.create(moduleId, { title: newTitle });
+      await topicService.create(moduleId, { title: newTitle, description: newDescription });
       setNewTitle("");
+      setNewDescription("");
       await loadTopics();
     } catch (saveFailure) {
       setError(
@@ -62,7 +65,7 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
     setSaving(true);
     setError("");
     try {
-      await topicService.rename(editingId, { title: editingTitle });
+      await topicService.rename(editingId, { title: editingTitle, description: editingDescription });
       setEditingId("");
       await loadTopics();
     } catch (saveFailure) {
@@ -101,7 +104,7 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
             Arrange this module into the topics or weeks that work for you.
           </p>
         </div>
-        <form className="flex gap-2" onSubmit={(event) => void createTopic(event)}>
+        <form className="flex flex-wrap gap-2" onSubmit={(event) => void createTopic(event)}>
           <label className="sr-only" htmlFor="new-topic-title">
             New topic name
           </label>
@@ -112,6 +115,15 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
             onChange={(event) => setNewTitle(event.target.value)}
             placeholder="e.g. Week 1: Introduction"
             value={newTitle}
+          />
+          <label className="sr-only" htmlFor="new-topic-description">New topic description (optional)</label>
+          <input
+            className="min-w-0 rounded-xl border border-line bg-canvas px-3 py-2 text-[11px] text-ink placeholder:text-muted/70 focus:border-brand focus:ring-brand sm:w-52"
+            id="new-topic-description"
+            maxLength={1000}
+            onChange={(event) => setNewDescription(event.target.value)}
+            placeholder="Optional description"
+            value={newDescription}
           />
           <button
             className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-[11px] font-semibold text-white hover:bg-brand-strong disabled:opacity-60"
@@ -147,7 +159,7 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
             >
               {editingId === topic.id ? (
                 <form
-                  className="flex min-w-0 flex-1 gap-2"
+                  className="flex min-w-0 flex-1 flex-wrap gap-2"
                   onSubmit={(event) => void renameTopic(event)}
                 >
                   <label className="sr-only" htmlFor={`rename-topic-${topic.id}`}>
@@ -160,6 +172,15 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
                     maxLength={100}
                     onChange={(event) => setEditingTitle(event.target.value)}
                     value={editingTitle}
+                  />
+                  <label className="sr-only" htmlFor={`describe-topic-${topic.id}`}>Topic description</label>
+                  <input
+                    className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:border-brand focus:ring-brand"
+                    id={`describe-topic-${topic.id}`}
+                    maxLength={1000}
+                    onChange={(event) => setEditingDescription(event.target.value)}
+                    placeholder="Optional description"
+                    value={editingDescription}
                   />
                   <button
                     aria-label={`Save topic ${topic.title}`}
@@ -183,8 +204,9 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
                   <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-soft text-[10px] font-semibold text-brand">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-ink">
-                    {topic.title}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12px] font-medium text-ink">{topic.title}</span>
+                    {topic.description && <span className="mt-0.5 block truncate text-[10px] text-muted">{topic.description}</span>}
                   </span>
                   <button
                     aria-label={`Rename ${topic.title}`}
@@ -192,6 +214,7 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
                     onClick={() => {
                       setEditingId(topic.id);
                       setEditingTitle(topic.title);
+                      setEditingDescription(topic.description ?? "");
                     }}
                     type="button"
                   >

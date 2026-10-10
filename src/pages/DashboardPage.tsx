@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -10,6 +10,10 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/StatePanel";
+import { moduleService } from "../features/modules/ModuleService";
+import type { ModuleRecord } from "../features/modules/module";
+import { materialService } from "../features/materials/MaterialService";
+import type { MaterialRecord } from "../features/materials/material";
 import { taskService } from "../features/tasks/TaskService";
 import type { TaskRecord } from "../features/tasks/task";
 
@@ -19,37 +23,81 @@ function formatDeadline(value: string): string {
 
 const dashboardCards = [
   {
-    title: "Your modules",
-    description: "Your courses and topics, all in one place.",
+    title: "Active modules",
+    description: "Your current courses on this device.",
     icon: BookOpen,
     path: "/modules",
-    empty: "No modules yet",
   },
   {
-    title: "Deadlines",
-    description: "Upcoming due dates from your local tasks.",
+    title: "Upcoming tasks",
+    description: "Your next real due dates.",
     icon: CalendarDays,
     path: "/tasks",
-    empty: "No upcoming deadlines",
   },
   {
-    title: "Study tasks",
-    description: "Small steps that move your learning forward.",
+    title: "Task completion",
+    description: "Completed or submitted tasks.",
     icon: CheckSquare,
     path: "/tasks",
-    empty: "Nothing to work on yet",
   },
 ];
 
+interface DashboardData {
+  activeModules: ModuleRecord[];
+  recentMaterials: MaterialRecord[];
+  upcomingTasks: TaskRecord[];
+  tasks: TaskRecord[];
+  materials: MaterialRecord[];
+}
+
 export function DashboardPage() {
-  const [upcoming, setUpcoming] = useState<TaskRecord[]>([]);
-  const [deadlinesLoading, setDeadlinesLoading] = useState(true);
-  const [deadlinesError, setDeadlinesError] = useState("");
+  const [data, setData] = useState<DashboardData>({
+    activeModules: [], recentMaterials: [], upcomingTasks: [], tasks: [], materials: [],
+  });
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState("");
   useEffect(() => {
-    void taskService.getUpcoming().then(setUpcoming).catch((error: unknown) => {
-      setDeadlinesError(error instanceof Error ? error.message : "Upcoming deadlines could not be loaded.");
-    }).finally(() => setDeadlinesLoading(false));
+    void Promise.all([
+      moduleService.getAll(),
+      materialService.getAll(),
+      taskService.getAll(),
+    ]).then(([modules, materials, tasks]) => {
+      const now = Date.now();
+      setData({
+        activeModules: modules.filter((module) => !module.isArchived),
+        recentMaterials: [...materials]
+          .sort((left, right) =>
+            Date.parse(right.lastOpenedAt ?? right.createdAt) -
+            Date.parse(left.lastOpenedAt ?? left.createdAt),
+          )
+          .slice(0, 5),
+        upcomingTasks: tasks
+          .filter((task) =>
+            task.dueAt && Date.parse(task.dueAt) >= now &&
+            task.status !== "completed" && task.status !== "submitted",
+          )
+          .sort((left, right) => Date.parse(left.dueAt!) - Date.parse(right.dueAt!))
+          .slice(0, 5),
+        tasks,
+        materials,
+      });
+    }).catch((error: unknown) => {
+      setDashboardError(error instanceof Error ? error.message : "Dashboard data could not be loaded.");
+    }).finally(() => setDashboardLoading(false));
   }, []);
+  const completedTasks = useMemo(
+    () => data.tasks.filter((task) => task.status === "completed" || task.status === "submitted").length,
+    [data.tasks],
+  );
+  const completedMaterials = useMemo(
+    () => data.materials.filter((material) => material.status === "completed").length,
+    [data.materials],
+  );
+  const cardValues: Record<string, string> = {
+    "Active modules": `${data.activeModules.length} active ${data.activeModules.length === 1 ? "module" : "modules"}`,
+    "Upcoming tasks": `${data.upcomingTasks.length} upcoming ${data.upcomingTasks.length === 1 ? "task" : "tasks"}`,
+    "Task completion": `${completedTasks} of ${data.tasks.length} complete`,
+  };
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
@@ -133,7 +181,7 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {dashboardCards.map(({ description, empty, icon: Icon, path, title }) => (
+            {dashboardCards.map(({ description, icon: Icon, path, title }) => (
               <Link
                 className="group rounded-2xl border border-line bg-surface p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/30"
                 key={title}
@@ -152,27 +200,48 @@ export function DashboardPage() {
                 <h3 className="mt-4 text-[12px] font-semibold text-ink">{title}</h3>
                 <p className="mt-1 text-[10px] leading-4 text-muted">{description}</p>
                 <p className="mt-4 border-t border-line pt-3 text-[10px] font-medium text-muted">
-                  {title === "Deadlines"
-                    ? deadlinesLoading ? "Loading deadlines…" : deadlinesError ? "Deadlines unavailable" : `${upcoming.length} upcoming deadline${upcoming.length === 1 ? "" : "s"}`
-                    : empty}
+                  {dashboardLoading ? "Loading…" : dashboardError ? "Data unavailable" : cardValues[title]}
                 </p>
               </Link>
             ))}
           </div>
+          {dashboardError && <div className="mt-4"><ErrorState message={dashboardError} /></div>}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <section aria-labelledby="active-modules-heading" className="rounded-2xl border border-line bg-surface p-4 shadow-soft">
+              <h2 className="mb-2 text-[13px] font-semibold text-ink" id="active-modules-heading">Active modules</h2>
+              {dashboardLoading ? <LoadingState label="Loading active modules" /> :
+                data.activeModules.length ? <ul className="divide-y divide-line">
+                  {data.activeModules.slice(0, 5).map((module) => <li key={module.id}>
+                    <Link className="flex items-center justify-between gap-2 py-2 text-[11px] hover:text-brand" to={`/modules/${module.id}`}>
+                      <span className="truncate font-medium text-ink">{module.name}</span>
+                      <span className="shrink-0 text-muted">{module.code}</span>
+                    </Link>
+                  </li>)}
+                </ul> : <p className="py-2 text-[11px] text-muted">No active modules yet.</p>}
+            </section>
+            <section aria-labelledby="completion-heading" className="rounded-2xl border border-line bg-surface p-4 shadow-soft">
+              <h2 className="mb-2 text-[13px] font-semibold text-ink" id="completion-heading">Completion summary</h2>
+              {dashboardLoading ? <LoadingState label="Loading completion summary" /> : dashboardError ? null :
+                <div className="space-y-3">
+                  <p className="text-[11px] text-muted"><span className="font-semibold text-ink">{completedTasks} / {data.tasks.length}</span> tasks completed or submitted</p>
+                  <p className="text-[11px] text-muted"><span className="font-semibold text-ink">{completedMaterials} / {data.materials.length}</span> materials marked completed</p>
+                </div>}
+            </section>
+          </div>
           <section aria-labelledby="deadlines-heading" className="mt-4 rounded-2xl border border-line bg-surface p-4 shadow-soft">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-[13px] font-semibold text-ink" id="deadlines-heading">Upcoming deadlines</h2>
+              <h2 className="text-[13px] font-semibold text-ink" id="deadlines-heading">Upcoming tasks</h2>
               <Link className="text-[10px] font-semibold text-brand hover:text-brand-strong" to="/tasks">View tasks</Link>
             </div>
-            {deadlinesLoading ? <LoadingState label="Loading upcoming deadlines" /> :
-              deadlinesError ? <ErrorState message={deadlinesError} /> :
-                upcoming.length ? <ul className="divide-y divide-line">
-                  {upcoming.map((task) => task.dueAt && <li className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0" key={task.id}>
-                    <span className="min-w-0 truncate text-[11px] font-medium text-ink">{task.title}</span>
+            {dashboardLoading ? <LoadingState label="Loading upcoming tasks" /> :
+              dashboardError ? null :
+                data.upcomingTasks.length ? <ul className="divide-y divide-line">
+                  {data.upcomingTasks.map((task) => task.dueAt && <li className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0" key={task.id}>
+                    <Link className="min-w-0 truncate text-[11px] font-medium text-ink hover:text-brand" to={`/tasks?taskId=${encodeURIComponent(task.id)}`}>{task.title}</Link>
                     <time className="shrink-0 text-[10px] text-muted" dateTime={task.dueAt}>{formatDeadline(task.dueAt)}</time>
                   </li>)}
                 </ul> :
-                  <p className="py-2 text-[11px] text-muted">No upcoming deadlines. Add a dated task to see it here.</p>}
+                  <p className="py-2 text-[11px] text-muted">No upcoming tasks with a due date.</p>}
           </section>
         </section>
 
@@ -193,20 +262,26 @@ export function DashboardPage() {
               </h2>
             </div>
           </div>
-          <EmptyState
-            compact
-            description="When you start exploring your materials, your recent work will be easy to find."
-            icon={<FileText aria-hidden="true" size={19} />}
-            title="Nothing here yet"
-            action={
-              <Link
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand hover:text-brand-strong"
-                to="/materials"
-              >
-                Browse materials <ArrowRight aria-hidden="true" size={13} />
-              </Link>
-            }
-          />
+          {dashboardLoading ? <LoadingState label="Loading recent materials" /> :
+            dashboardError ? <ErrorState message={dashboardError} /> :
+              data.recentMaterials.length ? <ul className="mt-3 divide-y divide-line">
+                {data.recentMaterials.map((material) => <li key={material.id}>
+                  <Link className="flex items-start gap-2 py-3 hover:text-brand" to={`/materials/${material.id}`}>
+                    <FileText aria-hidden="true" className="mt-0.5 shrink-0 text-brand" size={14} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[11px] font-medium text-ink">{material.title}</span>
+                      <span className="mt-0.5 block truncate text-[9px] text-muted">{material.originalFileName}</span>
+                    </span>
+                  </Link>
+                </li>)}
+              </ul> :
+                <EmptyState
+                  compact
+                  description="Imported or opened materials will appear here."
+                  icon={<FileText aria-hidden="true" size={19} />}
+                  title="No materials yet"
+                  action={<Link className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand hover:text-brand-strong" to="/materials">Browse materials <ArrowRight aria-hidden="true" size={13} /></Link>}
+                />}
         </section>
       </div>
     </div>

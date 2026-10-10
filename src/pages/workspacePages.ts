@@ -61,10 +61,9 @@ export const workspacePages: WorkspacePageInfo[] = [
     path: "/search",
     title: "Search",
     eyebrow: "FIND YOUR WAY",
-    description: "Find your way back to the course content that matters.",
+    description: "Search your local modules, topics, materials, notes, and tasks.",
     emptyTitle: "Your study hub is ready to search",
-    emptyDescription:
-      "Search across your local study library and notes as these features are added.",
+    emptyDescription: "Search local study records without loading file contents or contacting a server.",
     icon: Search,
   },
   {

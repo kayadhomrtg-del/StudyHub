@@ -48,6 +48,8 @@ describe("application foundation", () => {
           ? "Your modules"
           : item.path === "/settings"
             ? "Settings & backups"
+            : item.path === "/search"
+              ? "Search your study hub"
             : item.label;
         expect(await screen.findByRole("heading", { name: pageTitle })).toBeInTheDocument();
       }

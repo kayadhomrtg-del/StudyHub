@@ -21,9 +21,10 @@ catalog; the user creates their own modules.
 
 ### Topic
 
-Topics/week sections are records with an ID, parent module ID, title, order
-index, and ISO creation/update timestamps. Their index supports lookup and
-ordering by module. Reordering rewrites sort indexes within one transaction.
+Topics/week sections are records with an ID, parent module ID, title, optional
+description, order index, and ISO creation/update timestamps. Their index
+supports lookup and ordering by module. Reordering rewrites sort indexes within
+one transaction.
 
 ### Material metadata
 
@@ -51,8 +52,8 @@ success or failure for each file.
 Notes retain Markdown source, not rendered HTML. Each local record has a stable
 ID, title, source text, normalized tags, pin state, and creation/update
 timestamps. An optional link targets one module, topic, material, or task ID.
-Module/topic/material/task links are checked against local records. Deleting a linked
-module, topic, or material clears the note link in the same IndexedDB
+Module/topic/material/task links are checked against local records. Deleting a
+linked module, topic, material, or task clears the note link in the same IndexedDB
 transaction, preserving the note and its content. Autosaves are serialized per
 note so newer edits cannot be overwritten by an older write. Titles are limited
 to 200 characters, Markdown to one million characters, and tags to 30 entries
@@ -70,6 +71,17 @@ completed. Module/topic/material links are validated and are cleared when the
 linked record is deleted; deleting a task also clears note links to it without
 deleting the note. Missing due dates are allowed. The dashboard lists only
 real, future-dated tasks that are not completed or submitted.
+
+### Local search and dashboard queries
+
+Global search runs against module, topic, material metadata, note, and task
+stores in this browser. Search results are grouped by record type and link to
+their local detail or management view. Search does not query `storedFiles` or
+load original file bytes. Topic descriptions are optional; older topics without
+a description remain searchable by title. Dashboard module counts, recent
+materials, upcoming tasks, and task/material completion totals are derived
+from persisted records; an empty database shows zero/empty states rather than
+sample activity.
 
 ## Persistence boundary
 

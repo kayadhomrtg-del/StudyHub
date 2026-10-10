@@ -40,8 +40,8 @@ each milestone complete.
 
   - Upgrade a version 1 database and verify existing module records remain
     available under version 2.
-  - Create, rename, and reorder topics; verify ordering and persistence after
-    reopening the database.
+  - Create, describe, rename, and reorder topics; verify ordering and persistence
+    after reopening the database.
   - Import multiple files through both the picker and drag-and-drop, including two
     files with the same filename, and verify distinct material IDs and original
     bytes.
@@ -127,3 +127,17 @@ each milestone complete.
     actual upcoming tasks that are not completed or submitted.
 - Mark a task complete, reopen it, and verify `completedAt` is set and cleared
     appropriately. Confirm task deletion and verify linked note content remains.
+
+## Phase 6 search and dashboard checks
+
+- Search module names/codes, topic titles/descriptions, material titles,
+    filenames/tags, note titles/Markdown/tags, and task titles/descriptions.
+- Verify category groups and category filters return only matching record types
+    with links to the relevant local views.
+- Verify a metadata search never reads the stored file-byte table.
+- Verify empty query, no matches, loading, and IndexedDB error states.
+- With an empty database, verify the dashboard reports no active modules,
+    recent materials, or upcoming tasks and displays zero completion counts.
+- Populate module/material/task records and verify active-module counts, recent
+    material ordering, upcoming task exclusions, and completion summaries match
+    actual persisted records (including no fabricated progress).

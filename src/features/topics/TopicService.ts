@@ -17,6 +17,8 @@ export class TopicService {
     const title = input.title.trim();
     if (!title) throw new Error("Enter a topic name.");
     if (title.length > 100) throw new Error("Topic names must be 100 characters or fewer.");
+    const description = input.description?.trim() ?? "";
+    if (description.length > 1000) throw new Error("Topic descriptions must be 1,000 characters or fewer.");
 
     const topics = await this.repository.getByModule(moduleId);
     const timestamp = this.now();
@@ -24,6 +26,7 @@ export class TopicService {
       id: this.createId(),
       moduleId,
       title,
+      ...(description ? { description } : {}),
       sortOrder: topics.length,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -39,10 +42,13 @@ export class TopicService {
     const title = input.title.trim();
     if (!title) throw new Error("Enter a topic name.");
     if (title.length > 100) throw new Error("Topic names must be 100 characters or fewer.");
+    const description = input.description?.trim() ?? topic.description ?? "";
+    if (description.length > 1000) throw new Error("Topic descriptions must be 1,000 characters or fewer.");
 
     return this.repository.update({
       ...topic,
       title,
+      ...(description ? { description } : {}),
       updatedAt: this.now(),
     });
   }

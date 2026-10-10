@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarClock, Check, Circle, FilePlus2, Pencil, Search, Trash2, X } from "lucide-react";
 import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/StatePanel";
@@ -155,6 +156,8 @@ function TaskForm({
 }
 
 export function TasksPage() {
+  const [searchParams] = useSearchParams();
+  const handledTaskQuery = useRef("");
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [modules, setModules] = useState<ModuleRecord[]>([]);
   const [topics, setTopics] = useState<TopicRecord[]>([]);
@@ -190,6 +193,14 @@ export function TasksPage() {
     }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const requestedTaskId = searchParams.get("taskId");
+    if (!loading && requestedTaskId && handledTaskQuery.current !== requestedTaskId) {
+      handledTaskQuery.current = requestedTaskId;
+      const task = tasks.find((item) => item.id === requestedTaskId);
+      if (task) setEditing(task);
+    }
+  }, [loading, searchParams, tasks]);
 
   const labels = useMemo(() => Object.fromEntries([
     ...modules.map((module) => [module.id, module.name] as const),

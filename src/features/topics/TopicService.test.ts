@@ -33,16 +33,16 @@ afterEach(async () => {
 
 describe("TopicService", () => {
   it("creates, renames, reorders, and persists module topics", async () => {
-    const first = await service.create("module-1", { title: "  Week one  " });
+    const first = await service.create("module-1", { title: "  Week one  ", description: "  Overview of the unit " });
     const second = await service.create("module-1", { title: "Week two" });
     expect(first.title).toBe("Week one");
 
-    await service.rename(first.id, { title: "Introduction" });
+    await service.rename(first.id, { title: "Introduction", description: "Introductory material" });
     await service.move(second.id, -1);
 
     expect(await service.getByModule("module-1")).toMatchObject([
       { id: second.id, title: "Week two", sortOrder: 0 },
-      { id: first.id, title: "Introduction", sortOrder: 1 },
+      { id: first.id, title: "Introduction", description: "Introductory material", sortOrder: 1 },
     ]);
     expect(await database.topics.get(first.id)).toMatchObject({
       createdAt: first.createdAt,
@@ -55,6 +55,13 @@ describe("TopicService", () => {
       "Enter a topic name.",
     );
     await expect(service.getByModule("module-1")).resolves.toHaveLength(0);
+  });
+
+  it("validates and trims optional descriptions", async () => {
+    const topic = await service.create("module-1", { title: "Climate", description: " Climate systems " });
+    expect(topic.description).toBe("Climate systems");
+    await expect(service.create("module-1", { title: "Invalid", description: "d".repeat(1001) }))
+      .rejects.toThrow("Topic descriptions must be 1,000 characters or fewer.");
   });
 
   it("unassigns topic materials when deleting a topic", async () => {

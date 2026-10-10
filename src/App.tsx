@@ -28,6 +28,9 @@ const AsyncNotesPage = lazy(() =>
 const AsyncTasksPage = lazy(() =>
   import("./pages/TasksPage").then((module) => ({ default: module.TasksPage })),
 );
+const AsyncSearchPage = lazy(() =>
+  import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })),
+);
 
 function RouteLoading({ label }: { label: string }) {
   return <LoadingState label={label} />;
@@ -44,8 +47,9 @@ export function AppRoutes() {
         <Route path="materials" element={<Suspense fallback={<RouteLoading label="Loading materials" />}><MaterialsPage /></Suspense>} />
         <Route path="notes/:noteId?" element={<Suspense fallback={<RouteLoading label="Loading notes" />}><AsyncNotesPage /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<RouteLoading label="Loading tasks" />}><AsyncTasksPage /></Suspense>} />
+        <Route path="search" element={<Suspense fallback={<RouteLoading label="Loading search" />}><AsyncSearchPage /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<RouteLoading label="Loading settings" />}><AsyncSettingsPage /></Suspense>} />
-        {workspacePages.filter((page) => page.path !== "/settings" && page.path !== "/notes" && page.path !== "/tasks").map((page) => (
+        {workspacePages.filter((page) => !["/settings", "/notes", "/tasks", "/search"].includes(page.path)).map((page) => (
           <Route
             key={page.path}
             path={page.path.slice(1)}
