@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -8,7 +9,13 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { EmptyState } from "../components/ui/StatePanel";
+import { EmptyState, ErrorState, LoadingState } from "../components/ui/StatePanel";
+import { taskService } from "../features/tasks/TaskService";
+import type { TaskRecord } from "../features/tasks/task";
+
+function formatDeadline(value: string): string {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
 
 const dashboardCards = [
   {
@@ -19,11 +26,11 @@ const dashboardCards = [
     empty: "No modules yet",
   },
   {
-    title: "Coming up",
-    description: "A clear view of what is on your horizon.",
+    title: "Deadlines",
+    description: "Upcoming due dates from your local tasks.",
     icon: CalendarDays,
-    path: "/calendar",
-    empty: "Your schedule is clear",
+    path: "/tasks",
+    empty: "No upcoming deadlines",
   },
   {
     title: "Study tasks",
@@ -35,6 +42,14 @@ const dashboardCards = [
 ];
 
 export function DashboardPage() {
+  const [upcoming, setUpcoming] = useState<TaskRecord[]>([]);
+  const [deadlinesLoading, setDeadlinesLoading] = useState(true);
+  const [deadlinesError, setDeadlinesError] = useState("");
+  useEffect(() => {
+    void taskService.getUpcoming().then(setUpcoming).catch((error: unknown) => {
+      setDeadlinesError(error instanceof Error ? error.message : "Upcoming deadlines could not be loaded.");
+    }).finally(() => setDeadlinesLoading(false));
+  }, []);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
@@ -137,11 +152,28 @@ export function DashboardPage() {
                 <h3 className="mt-4 text-[12px] font-semibold text-ink">{title}</h3>
                 <p className="mt-1 text-[10px] leading-4 text-muted">{description}</p>
                 <p className="mt-4 border-t border-line pt-3 text-[10px] font-medium text-muted">
-                  {empty}
+                  {title === "Deadlines"
+                    ? deadlinesLoading ? "Loading deadlines…" : deadlinesError ? "Deadlines unavailable" : `${upcoming.length} upcoming deadline${upcoming.length === 1 ? "" : "s"}`
+                    : empty}
                 </p>
               </Link>
             ))}
           </div>
+          <section aria-labelledby="deadlines-heading" className="mt-4 rounded-2xl border border-line bg-surface p-4 shadow-soft">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-[13px] font-semibold text-ink" id="deadlines-heading">Upcoming deadlines</h2>
+              <Link className="text-[10px] font-semibold text-brand hover:text-brand-strong" to="/tasks">View tasks</Link>
+            </div>
+            {deadlinesLoading ? <LoadingState label="Loading upcoming deadlines" /> :
+              deadlinesError ? <ErrorState message={deadlinesError} /> :
+                upcoming.length ? <ul className="divide-y divide-line">
+                  {upcoming.map((task) => task.dueAt && <li className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0" key={task.id}>
+                    <span className="min-w-0 truncate text-[11px] font-medium text-ink">{task.title}</span>
+                    <time className="shrink-0 text-[10px] text-muted" dateTime={task.dueAt}>{formatDeadline(task.dueAt)}</time>
+                  </li>)}
+                </ul> :
+                  <p className="py-2 text-[11px] text-muted">No upcoming deadlines. Add a dated task to see it here.</p>}
+          </section>
         </section>
 
         <section

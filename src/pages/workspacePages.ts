@@ -25,18 +25,16 @@ export const workspacePages: WorkspacePageInfo[] = [
     eyebrow: "YOUR THINKING",
     description: "A quiet place for the ideas and connections you make while learning.",
     emptyTitle: "No notes just yet",
-    emptyDescription:
-      "This space is ready for your study notes. Note creation and saving are not part of this foundation milestone.",
+    emptyDescription: "Write and organize private study notes on this device.",
     icon: StickyNote,
   },
   {
     path: "/tasks",
     title: "Tasks",
     eyebrow: "YOUR COMMITMENTS",
-    description: "Keep assignments and study goals visible as your term takes shape.",
+    description: "Create, organize, and track assignments and study goals locally.",
     emptyTitle: "Nothing on your list",
-    emptyDescription:
-      "Assignments and tasks will be introduced in a later milestone. For now, this is your place to find them.",
+    emptyDescription: "Add assignments, exams, readings, and personal study tasks.",
     icon: CheckSquare,
   },
   {
@@ -66,7 +64,7 @@ export const workspacePages: WorkspacePageInfo[] = [
     description: "Find your way back to the course content that matters.",
     emptyTitle: "Your study hub is ready to search",
     emptyDescription:
-      "Search will become useful as your local library fills with materials and notes in future milestones.",
+      "Search across your local study library and notes as these features are added.",
     icon: Search,
   },
   {

@@ -22,6 +22,12 @@ const MaterialViewerPage = lazy(() =>
 const AsyncSettingsPage = lazy(() =>
   import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })),
 );
+const AsyncNotesPage = lazy(() =>
+  import("./pages/NotesPage").then((module) => ({ default: module.NotesPage })),
+);
+const AsyncTasksPage = lazy(() =>
+  import("./pages/TasksPage").then((module) => ({ default: module.TasksPage })),
+);
 
 function RouteLoading({ label }: { label: string }) {
   return <LoadingState label={label} />;
@@ -36,8 +42,10 @@ export function AppRoutes() {
         <Route path="modules/:moduleId" element={<Suspense fallback={<RouteLoading label="Loading module" />}><ModuleDetailPage /></Suspense>} />
         <Route path="materials/:materialId" element={<Suspense fallback={<RouteLoading label="Loading material" />}><MaterialViewerPage /></Suspense>} />
         <Route path="materials" element={<Suspense fallback={<RouteLoading label="Loading materials" />}><MaterialsPage /></Suspense>} />
+        <Route path="notes/:noteId?" element={<Suspense fallback={<RouteLoading label="Loading notes" />}><AsyncNotesPage /></Suspense>} />
+        <Route path="tasks" element={<Suspense fallback={<RouteLoading label="Loading tasks" />}><AsyncTasksPage /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<RouteLoading label="Loading settings" />}><AsyncSettingsPage /></Suspense>} />
-        {workspacePages.filter((page) => page.path !== "/settings").map((page) => (
+        {workspacePages.filter((page) => page.path !== "/settings" && page.path !== "/notes" && page.path !== "/tasks").map((page) => (
           <Route
             key={page.path}
             path={page.path.slice(1)}

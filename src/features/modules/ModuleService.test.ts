@@ -88,7 +88,7 @@ describe("ModuleService", () => {
     await reopenedDatabase.open();
     try {
       expect(await reopenedDatabase.modules.get(created.id)).toEqual(created);
-      expect(reopenedDatabase.verno).toBe(3);
+      expect(reopenedDatabase.verno).toBe(5);
     } finally {
       reopenedDatabase.close();
       await reopenedDatabase.delete();
@@ -165,10 +165,11 @@ describe("ModuleService", () => {
     const upgradedDatabase = new ModuleDatabase(databaseName);
     await upgradedDatabase.open();
     try {
-      expect(upgradedDatabase.verno).toBe(3);
+      expect(upgradedDatabase.verno).toBe(5);
       expect(await upgradedDatabase.modules.get(legacyModule.id)).toEqual(legacyModule);
       expect(await upgradedDatabase.topics.count()).toBe(0);
       expect(await upgradedDatabase.materials.count()).toBe(0);
+      expect(await upgradedDatabase.tasks.count()).toBe(0);
     } finally {
       upgradedDatabase.close();
       await upgradedDatabase.delete();
@@ -217,12 +218,60 @@ describe("ModuleService", () => {
     const upgradedDatabase = new ModuleDatabase(databaseName);
     await upgradedDatabase.open();
     try {
-      expect(upgradedDatabase.verno).toBe(3);
+      expect(upgradedDatabase.verno).toBe(5);
       expect(await upgradedDatabase.modules.get(module.id)).toEqual(module);
       expect(await upgradedDatabase.materials.get(material.id)).toEqual(material);
+      expect(await upgradedDatabase.notes.count()).toBe(0);
+      expect(await upgradedDatabase.tasks.count()).toBe(0);
       expect(
         new TextDecoder().decode((await upgradedDatabase.storedFiles.get(material.id))?.bytes),
       ).toBe("stored");
+    } finally {
+      upgradedDatabase.close();
+      await upgradedDatabase.delete();
+    }
+  });
+
+  it("upgrades version 4 without deleting existing modules or notes", async () => {
+    const legacyDatabase = new Dexie(`legacy-notes-db-${crypto.randomUUID()}`);
+    legacyDatabase.version(4).stores({
+      modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
+      topics: "id, moduleId, sortOrder, updatedAt",
+      materials:
+        "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt, lastOpenedAt",
+      storedFiles: "id",
+      notes: "id, title, *tags, isPinned, updatedAt",
+    });
+    await legacyDatabase.open();
+    const module = {
+      id: "v4-module",
+      name: "Legacy module",
+      code: "OLD-202",
+      isArchived: false,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const note = {
+      id: "v4-note",
+      title: "Existing note",
+      markdown: "Keep this note.",
+      tags: ["preserve"],
+      isPinned: true,
+      createdAt: "2026-01-02T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    };
+    await legacyDatabase.table("modules").add(module);
+    await legacyDatabase.table("notes").add(note);
+    const databaseName = legacyDatabase.name;
+    legacyDatabase.close();
+
+    const upgradedDatabase = new ModuleDatabase(databaseName);
+    await upgradedDatabase.open();
+    try {
+      expect(upgradedDatabase.verno).toBe(5);
+      expect(await upgradedDatabase.modules.get(module.id)).toEqual(module);
+      expect(await upgradedDatabase.notes.get(note.id)).toEqual(note);
+      expect(await upgradedDatabase.tasks.count()).toBe(0);
     } finally {
       upgradedDatabase.close();
       await upgradedDatabase.delete();

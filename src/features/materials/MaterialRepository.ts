@@ -130,12 +130,26 @@ export class MaterialRepository {
       "rw",
       this.database.materials,
       this.database.storedFiles,
+      this.database.notes,
+      this.database.tasks,
       async () => {
         if (!(await this.database.materials.get(id))) {
           throw new Error("This material no longer exists. Reload the page and try again.");
         }
         await this.database.materials.delete(id);
         await this.database.storedFiles.delete(id);
+        await this.database.notes
+          .filter((note) => note.link?.type === "material" && note.link.id === id)
+          .modify((note) => {
+            delete note.link;
+            note.updatedAt = new Date().toISOString();
+          });
+        await this.database.tasks
+          .filter((task) => task.linkedMaterialIds.includes(id))
+          .modify((task) => {
+            task.linkedMaterialIds = task.linkedMaterialIds.filter((materialId) => materialId !== id);
+            task.updatedAt = new Date().toISOString();
+          });
       },
     );
   }

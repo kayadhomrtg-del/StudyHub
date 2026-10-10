@@ -2,12 +2,16 @@ import Dexie, { type Table } from "dexie";
 import type { MaterialRecord, StoredFileRecord } from "../materials/material";
 import type { ModuleRecord } from "./module";
 import type { TopicRecord } from "../topics/topic";
+import type { NoteRecord } from "../notes/note";
+import type { TaskRecord } from "../tasks/task";
 
 export class ModuleDatabase extends Dexie {
   modules!: Table<ModuleRecord, string>;
   topics!: Table<TopicRecord, string>;
   materials!: Table<MaterialRecord, string>;
   storedFiles!: Table<StoredFileRecord, string>;
+  notes!: Table<NoteRecord, string>;
+  tasks!: Table<TaskRecord, string>;
 
   constructor(name = "CollegeStudyHub") {
     super(name);
@@ -33,6 +37,23 @@ export class ModuleDatabase extends Dexie {
       materials:
         "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt, lastOpenedAt",
       storedFiles: "id",
+    });
+    this.version(4).stores({
+      modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
+      topics: "id, moduleId, sortOrder, updatedAt",
+      materials:
+        "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt, lastOpenedAt",
+      storedFiles: "id",
+      notes: "id, title, *tags, isPinned, updatedAt",
+    });
+    this.version(5).stores({
+      modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
+      topics: "id, moduleId, sortOrder, updatedAt",
+      materials:
+        "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt, lastOpenedAt",
+      storedFiles: "id",
+      notes: "id, title, *tags, isPinned, updatedAt",
+      tasks: "id, moduleId, topicId, dueAt, priority, status, type, *linkedMaterialIds, *tags, createdAt, updatedAt",
     });
   }
 }

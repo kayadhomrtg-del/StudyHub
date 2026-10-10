@@ -1,11 +1,13 @@
 # Data model
 
-## Current schema: version 3
+## Current schema: version 5
 
-`src/features/modules/moduleDatabase.ts` declares Dexie database version 3.
+`src/features/modules/moduleDatabase.ts` declares Dexie database version 5.
 The v2 migration adds topic, material metadata, and stored-file stores while
 preserving existing modules. Version 3 adds an index for material last-opened
 timestamps without rewriting or deleting existing material or file records.
+Version 4 adds the notes store without changing existing records.
+Version 5 adds the tasks store without changing existing records.
 Module IDs are UUID strings. Records contain:
 
 - `id`, `name`, `code`
@@ -44,12 +46,38 @@ transaction. If either write fails (including quota exhaustion), neither
 record is committed. Batch imports process files independently and return a
 success or failure for each file.
 
+### Note
+
+Notes retain Markdown source, not rendered HTML. Each local record has a stable
+ID, title, source text, normalized tags, pin state, and creation/update
+timestamps. An optional link targets one module, topic, material, or task ID.
+Module/topic/material/task links are checked against local records. Deleting a linked
+module, topic, or material clears the note link in the same IndexedDB
+transaction, preserving the note and its content. Autosaves are serialized per
+note so newer edits cannot be overwritten by an older write. Titles are limited
+to 200 characters, Markdown to one million characters, and tags to 30 entries
+of at most 50 characters each.
+
+Note previews disable raw HTML. Remote images are omitted by the shared
+Markdown renderer; imported HTML and scripts are not executed.
+
+### Task
+
+Tasks are local records with a title, description, optional module/topic links,
+optional ISO due date/time, priority, status, type, linked material IDs, tags,
+and creation/update timestamps. `completedAt` is present only while the task is
+completed. Module/topic/material links are validated and are cleared when the
+linked record is deleted; deleting a task also clears note links to it without
+deleting the note. Missing due dates are allowed. The dashboard lists only
+real, future-dated tasks that are not completed or submitted.
+
 ## Persistence boundary
 
-Reads/writes flow through dedicated module, topic, and material repositories and
-services. Module validation, including case-insensitive module-code uniqueness,
-happens before writing. File metadata and bytes are written atomically per
-imported file. UI components do not query IndexedDB directly.
+Reads/writes flow through dedicated module, topic, material, note, and task
+repositories and services. Module validation, including case-insensitive
+module-code uniqueness, happens before writing. File metadata and bytes are
+written atomically per imported file. UI components do not query IndexedDB
+directly.
 
 The database is stored by the browser on the local device. Clearing browser
 storage can remove it; no cloud copy or automatic backup is provided in this
@@ -86,8 +114,9 @@ module backups contain that module, its topics, assigned materials, and their
 bytes. Export fails explicitly if any associated bytes are missing or do not
 match metadata. Restore validates the whole archive and relationships first.
 Merge rejects existing IDs and case-insensitive module-code conflicts without
-writing; replace clears and writes all four stores in one Dexie transaction
-after explicit user confirmation. Backup archives are limited to 512 MiB,
+writing; replace clears and writes all included library stores in one Dexie
+transaction after explicit user confirmation. Notes and tasks are excluded
+from backup archives. Backup archives are limited to 512 MiB,
 10,002 entries, and a bounded expanded size before decompression.
 
 ## Storage retention
@@ -100,7 +129,7 @@ downloaded backups outside the browser.
 
 ## Future schema changes
 
-Subsequent milestones may add notes, tasks, and planning records. Every schema
+Subsequent milestones may add calendar and planning records. Every schema
 change must increment the Dexie version and provide a migration that preserves
 existing user data. Never reset the database to recover from a migration or
 storage error.

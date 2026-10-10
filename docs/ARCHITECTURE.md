@@ -16,21 +16,31 @@
   ordering, and relationship-safe operations.
 - `src/features/materials/` separates import orchestration, metadata,
   repository transactions, stored file-byte records, and local file viewers.
+- `src/features/notes/` owns note types, local autosaving, tag/pin operations,
+  search, and relationship validation.
+- `src/features/tasks/` owns task records, validation, filtering, sorting, and
+  task/module/topic/material relationship checks.
 - `src/features/backup/` creates and validates versioned local ZIP archives,
   including module-scoped packages.
 - `src/pages/` contains the dashboard, modules collection/detail, route shells,
   settings/backup controls, and not-found page.
 
-The v3 IndexedDB database is local to this browser profile on this device.
-Module, topic, and material reads/writes flow through Dexie repositories and
-services, not page components. A material import writes metadata and original
-file bytes in one per-file transaction. The viewer retrieves metadata and bytes
-independently through the material service. PDF.js and its worker are bundled
-locally. DOCX, PPTX, and XLSX
-processing is local; DOCX markup is sanitized and shown in a sandboxed frame,
+The v5 IndexedDB database is local to this browser profile on this device.
+Module, topic, material, note, and task reads/writes flow through Dexie
+repositories and services, not page components. A material import writes
+metadata and original file bytes in one per-file transaction. The viewer
+retrieves metadata and bytes independently through the material service. PDF.js
+and its worker are bundled locally. DOCX, PPTX, and XLSX processing is local;
+DOCX markup is sanitized and shown in a sandboxed frame,
 and Markdown does not enable raw HTML. Code is highlighted as text. HTML/JS
 imports are never executed. Original downloads use temporary object URLs that
 are revoked after use.
+
+Notes retain Markdown source in IndexedDB and report saving, saved, and failed
+autosave states. Raw HTML is disabled in note previews. Deleting a linked
+module, topic, or material clears the note link transactionally while
+preserving its content. Task records persist in IndexedDB; task links and
+module/topic/material relationships are validated and cleaned transactionally.
 
 `BackupService` writes a documented ZIP containing a manifest, JSON records,
 and a separate binary entry for every material. It checks relationships,
@@ -57,7 +67,9 @@ importing, material metadata, tags, favorites, study status, and module/topic
 assignment. Phase 3 adds local PDF/image/Office/Markdown/code previews,
 download, document search, topic navigation, and last-opened tracking. Full and
 module-scoped backup/restore use ZIP format version 1 without changing the
-IndexedDB schema. Notes, assignments, global cross-library search, calendar
-events, and study sessions are not included. Future schema changes must
+IndexedDB schema. Phase 4 adds local Markdown notes and Phase 5 adds local task
+management. Notes and tasks are not yet included in that backup format. Global
+cross-library search, calendar events, and study sessions are not included.
+Future schema changes must
 increment the Dexie version and include a migration without deleting existing
 user data.

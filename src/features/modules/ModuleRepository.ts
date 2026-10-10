@@ -32,6 +32,8 @@ export class ModuleRepository {
       this.database.modules,
       this.database.topics,
       this.database.materials,
+      this.database.notes,
+      this.database.tasks,
       async () => {
         const existing = await this.database.modules.get(id);
         if (!existing) {
@@ -51,6 +53,22 @@ export class ModuleRepository {
             }
           });
         await this.database.topics.where("moduleId").equals(id).delete();
+        await this.database.notes
+          .filter((note) =>
+            (note.link?.type === "module" && note.link.id === id) ||
+            (note.link?.type === "topic" && topicIds.has(note.link.id))
+          )
+          .modify((note) => {
+            delete note.link;
+            note.updatedAt = new Date().toISOString();
+          });
+        await this.database.tasks
+          .filter((task) => task.moduleId === id || Boolean(task.topicId && topicIds.has(task.topicId)))
+          .modify((task) => {
+            delete task.moduleId;
+            delete task.topicId;
+            task.updatedAt = new Date().toISOString();
+          });
         await this.database.modules.delete(id);
       },
     );

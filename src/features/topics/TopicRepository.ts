@@ -43,6 +43,8 @@ export class TopicRepository {
       "rw",
       this.database.topics,
       this.database.materials,
+      this.database.notes,
+      this.database.tasks,
       async () => {
         const topic = await this.database.topics.get(id);
         if (!topic) {
@@ -51,6 +53,16 @@ export class TopicRepository {
         await this.database.materials.where("topicId").equals(id).modify((material) => {
           delete material.topicId;
           material.updatedAt = new Date().toISOString();
+        });
+        await this.database.notes
+          .filter((note) => note.link?.type === "topic" && note.link.id === id)
+          .modify((note) => {
+            delete note.link;
+            note.updatedAt = new Date().toISOString();
+          });
+        await this.database.tasks.where("topicId").equals(id).modify((task) => {
+          delete task.topicId;
+          task.updatedAt = new Date().toISOString();
         });
         await this.database.topics.delete(id);
       },

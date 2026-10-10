@@ -95,3 +95,35 @@ each milestone complete.
     handles denied or unsupported persistent-storage requests.
 - Verify full export fails explicitly when stored bytes are missing; no material
     is silently omitted from a backup.
+
+## Phase 4 notes checks
+
+- Upgrade a version 3 database and verify module, topic, material, and original
+    file records are preserved while the notes store is added.
+- Create, edit, reopen, search, pin, tag, and delete notes; verify changes
+    persist in IndexedDB.
+- Save rapid successive edits and verify the latest Markdown source wins,
+    including while changing note routes.
+- Validate module/topic/material/task links against local records.
+- Delete a linked module/topic/material and verify the note remains intact with
+    its stale link cleared in the same transaction.
+- Preview Markdown containing raw HTML and unsafe URLs; verify no script or
+    live imported element executes and remote images are omitted.
+- Simulate storage failure and verify a clear Save failed state retains the
+    editable content and offers retry.
+
+## Phase 5 task checks
+
+- Upgrade a version 4 database and verify all existing records remain while
+    the tasks store is added.
+- Create, edit, and delete tasks with optional module/topic/material links;
+    reject stale or mismatched links and preserve tasks when linked records are
+    removed.
+- Validate task titles, priorities, statuses, types, tags, and optional due
+    date/time values; allow tasks with no due date.
+- Verify search, module/type/status/date filters, and due-date/priority/update
+    sorting against stored tasks.
+- Verify overdue and upcoming indicators, and ensure the dashboard shows only
+    actual upcoming tasks that are not completed or submitted.
+- Mark a task complete, reopen it, and verify `completedAt` is set and cleared
+    appropriately. Confirm task deletion and verify linked note content remains.
