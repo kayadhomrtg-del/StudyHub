@@ -29,7 +29,7 @@
 - `src/pages/` contains the dashboard, modules collection/detail, route shells,
   settings/backup controls, and not-found page.
 
-The v6 IndexedDB database is local to this browser profile on this device.
+The v7 IndexedDB database is local to this browser profile on this device.
 Module, topic, material, note, task, and study-session reads/writes flow through
 Dexie repositories and services, not page components. A material import writes
 metadata and original file bytes in one per-file transaction. The viewer
@@ -54,9 +54,11 @@ its record in the separate Study planner area. Study planner owns session
 creation, editing, completion/skipping, and deletion. Session start times are
 entered using browser-local controls and stored as ISO values.
 
-`BackupService` writes a documented ZIP containing a manifest, JSON records,
-and a separate binary entry for every material. It checks relationships,
-record counts, file sizes, CRCs, and identity/code conflicts before restoring.
+`BackupService` writes a documented v2 ZIP containing a manifest, every
+structured record/settings table, and a separate binary entry for every
+material. It checks relationships, record counts, file sizes, CRCs, and
+identity/code conflicts before restoring; v1 full/module archives remain
+readable through the legacy migration path.
 ZIP central-directory limits are checked before inflation, including expanded
 size, entry count, unsafe paths, encryption, and unsupported ZIP64 entries.
 Office preview archives are also bounded before local parsing.
@@ -64,6 +66,11 @@ Replace is atomic and the UI requires explicit confirmation; merge preserves
 existing data and rejects collisions. Settings uses `navigator.storage`
 estimates and only requests persistent storage after a user action. Neither
 feature provides a remote copy or guarantees that the browser will retain data.
+In production, the service worker caches only the application shell and
+same-origin static build assets, never study content or arbitrary requests.
+The production preview was manually checked in a browser with network access
+disabled: the shell, styles, scripts, and direct module-route reload remained
+available. This does not protect IndexedDB content from browser storage loss.
 
 ## Design and privacy
 
@@ -77,10 +84,9 @@ user content or require an account or backend.
 Phase 1 implements module management. Phase 2 adds module topics and local file
 importing, material metadata, tags, favorites, study status, and module/topic
 assignment. Phase 3 adds local PDF/image/Office/Markdown/code previews,
-download, document search, topic navigation, and last-opened tracking. Full and
-module-scoped backup/restore use ZIP format version 1 without changing the
-IndexedDB schema. Phase 4 adds local Markdown notes and Phase 5 adds local task
-management. Notes and tasks are not yet included in that backup format. Phase 6 adds
-cross-library search and database-backed dashboard summaries. Phase 7 adds a
-local calendar and study sessions in schema version 6. Future schema changes
-must increment the Dexie version and preserve existing user data.
+download, document search, topic navigation, and last-opened tracking. Phase 4
+adds local Markdown notes, Phase 5 local task management, Phase 6 cross-library
+search/dashboard, and Phase 7 calendar and study sessions. Phase 8 adds
+versioned v2 full backups and production app-shell caching; it adds persistent
+appearance settings in schema version 7. Future schema changes must increment
+the Dexie version and preserve existing user data.

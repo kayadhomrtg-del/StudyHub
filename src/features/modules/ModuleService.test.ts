@@ -88,7 +88,7 @@ describe("ModuleService", () => {
     await reopenedDatabase.open();
     try {
       expect(await reopenedDatabase.modules.get(created.id)).toEqual(created);
-      expect(reopenedDatabase.verno).toBe(6);
+      expect(reopenedDatabase.verno).toBe(7);
     } finally {
       reopenedDatabase.close();
       await reopenedDatabase.delete();
@@ -165,7 +165,7 @@ describe("ModuleService", () => {
     const upgradedDatabase = new ModuleDatabase(databaseName);
     await upgradedDatabase.open();
     try {
-      expect(upgradedDatabase.verno).toBe(6);
+      expect(upgradedDatabase.verno).toBe(7);
       expect(await upgradedDatabase.modules.get(legacyModule.id)).toEqual(legacyModule);
       expect(await upgradedDatabase.topics.count()).toBe(0);
       expect(await upgradedDatabase.materials.count()).toBe(0);
@@ -218,7 +218,7 @@ describe("ModuleService", () => {
     const upgradedDatabase = new ModuleDatabase(databaseName);
     await upgradedDatabase.open();
     try {
-      expect(upgradedDatabase.verno).toBe(6);
+      expect(upgradedDatabase.verno).toBe(7);
       expect(await upgradedDatabase.modules.get(module.id)).toEqual(module);
       expect(await upgradedDatabase.materials.get(material.id)).toEqual(material);
       expect(await upgradedDatabase.notes.count()).toBe(0);
@@ -268,7 +268,7 @@ describe("ModuleService", () => {
     const upgradedDatabase = new ModuleDatabase(databaseName);
     await upgradedDatabase.open();
     try {
-      expect(upgradedDatabase.verno).toBe(6);
+      expect(upgradedDatabase.verno).toBe(7);
       expect(await upgradedDatabase.modules.get(module.id)).toEqual(module);
       expect(await upgradedDatabase.notes.get(note.id)).toEqual(note);
       expect(await upgradedDatabase.tasks.count()).toBe(0);
@@ -278,7 +278,7 @@ describe("ModuleService", () => {
     }
   });
 
-  it("adds the v6 study-session store while preserving all v5 records", async () => {
+  it("upgrades v5 through v7 while preserving all records and adding study sessions", async () => {
     const legacyDatabase = new Dexie(`legacy-v5-db-${crypto.randomUUID()}`);
     legacyDatabase.version(5).stores({
       modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
@@ -318,10 +318,47 @@ describe("ModuleService", () => {
     const upgradedDatabase = new ModuleDatabase(databaseName);
     await upgradedDatabase.open();
     try {
-      expect(upgradedDatabase.verno).toBe(6);
+      expect(upgradedDatabase.verno).toBe(7);
       expect(await upgradedDatabase.modules.get(module.id)).toEqual(module);
       expect(await upgradedDatabase.tasks.get(task.id)).toEqual(task);
       expect(await upgradedDatabase.studySessions.count()).toBe(0);
+    } finally {
+      upgradedDatabase.close();
+      await upgradedDatabase.delete();
+    }
+  });
+
+  it("adds the v7 settings store while preserving existing v6 records", async () => {
+    const legacyDatabase = new Dexie(`legacy-v6-db-${crypto.randomUUID()}`);
+    legacyDatabase.version(6).stores({
+      modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
+      topics: "id, moduleId, sortOrder, updatedAt",
+      materials:
+        "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt, lastOpenedAt",
+      storedFiles: "id",
+      notes: "id, title, *tags, isPinned, updatedAt",
+      tasks: "id, moduleId, topicId, dueAt, priority, status, type, *linkedMaterialIds, *tags, createdAt, updatedAt",
+      studySessions: "id, moduleId, topicId, materialId, plannedStart, status, createdAt, updatedAt",
+    });
+    await legacyDatabase.open();
+    const existing = {
+      id: "v6-module",
+      name: "Existing module",
+      code: "KEEP-601",
+      isArchived: false,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    await legacyDatabase.table("modules").add(existing);
+    const databaseName = legacyDatabase.name;
+    legacyDatabase.close();
+
+    const upgradedDatabase = new ModuleDatabase(databaseName);
+    await upgradedDatabase.open();
+    try {
+      expect(upgradedDatabase.verno).toBe(7);
+      expect(await upgradedDatabase.modules.get(existing.id)).toEqual(existing);
+      expect(await upgradedDatabase.appSettings.count()).toBe(0);
     } finally {
       upgradedDatabase.close();
       await upgradedDatabase.delete();

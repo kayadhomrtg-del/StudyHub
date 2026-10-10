@@ -110,8 +110,8 @@ written atomically per imported file. UI components do not query IndexedDB
 directly.
 
 The database is stored by the browser on the local device. Clearing browser
-storage can remove it; no cloud copy or automatic backup is provided in this
-milestone.
+storage can remove it; downloaded backups are the user's independent recovery
+copy. Settings stores the local appearance preference in IndexedDB.
 
 Deleting a topic removes the topic record and clears that topic assignment from
 its materials. Deleting a module removes its topics and clears module/topic
@@ -134,20 +134,27 @@ DOCX/PPTX/XLSX previews reject ZIP containers exceeding 10,000 entries or
 10,002 entries and 512 MiB of original file data plus bounded metadata, and
 verify entry CRCs before records can be restored.
 
-## Backup format version 1
+## Backup format version 2
 
-Backups do not alter the IndexedDB schema. A ZIP contains `manifest.json`
-(format, version, kind, export timestamp, and record counts), `records.json`
-(module/topic/material metadata), and one `files/<material-id>.bin` entry for
-each material's exact original bytes. Full backups include unassigned records;
-module backups contain that module, its topics, assigned materials, and their
-bytes. Export fails explicitly if any associated bytes are missing or do not
-match metadata. Restore validates the whole archive and relationships first.
+The IndexedDB schema is version 7. A full-backup ZIP contains `manifest.json`
+(format, backup version, app version, export timestamp, record counts, and
+per-file metadata), `records.json` (modules, topics, materials, notes, tasks,
+study sessions, and settings), and one `files/<material-id>.bin` entry for
+each material's exact original bytes. Full backups include unassigned
+materials. Export fails explicitly if stored-file records are unreferenced or
+if any bytes are missing or do not match metadata.
+
+Restore validates archive structure, supported version, IDs, relationships,
+record counts, file metadata, sizes, and CRCs before a single write begins.
 Merge rejects existing IDs and case-insensitive module-code conflicts without
-writing; replace clears and writes all included library stores in one Dexie
-transaction after explicit user confirmation. Notes and tasks are excluded
-from backup archives. Backup archives are limited to 512 MiB,
-10,002 entries, and a bounded expanded size before decompression.
+writing; an identical appearance preference is preserved, while a differing
+preference is reported as a conflict. Replace is explicit and writes/clears all
+eight stores in one Dexie transaction; transaction failures roll back. Backup version 1 archives are
+migrated on read, with records absent from that older format represented as
+empty collections. Module-scoped archives remain version 1, contain their
+module/topics/materials and original bytes, and may only be merged. Backup
+archives are limited to 512 MiB, 10,002 entries, and a bounded expanded size
+before decompression.
 
 ## Storage retention
 
@@ -155,7 +162,12 @@ Course data remains in this browser's IndexedDB. Settings displays browser
 storage usage/quota estimates where supported and allows a user-triggered
 persistent-storage request. A grant depends on browser policy and does not
 protect against disk/profile failure or deliberate storage clearing. Keep
-downloaded backups outside the browser.
+Keep downloaded backups outside the browser. The production service worker caches
+only the app shell, manifest/icon, and same-origin Vite build assets; it does
+not cache IndexedDB records, material responses, or external requests.
+Manual production-preview browser verification with network access disabled
+confirmed the cached app shell, styles, scripts, and a direct `/modules` reload
+work offline. This does not imply that local IndexedDB data is permanent.
 
 ## Future schema changes
 

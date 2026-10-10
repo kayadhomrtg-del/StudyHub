@@ -1,0 +1,18 @@
+{
+  "name": "College Study Hub",
+  "short_name": "Study Hub",
+  "description": "A private, local-first college study workspace.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f6",
+  "theme_color": "#f7f8f6",
+  "icons": [
+    {
+      "src": "/icons/study-hub.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

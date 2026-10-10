@@ -95,6 +95,18 @@ each milestone complete.
     handles denied or unsupported persistent-storage requests.
 - Verify full export fails explicitly when stored bytes are missing; no material
     is silently omitted from a backup.
+- Export and restore an empty backup and a populated backup containing every
+    record table, appearance setting, and original file; compare IDs, links, and
+    byte contents.
+- Restore a supported v1 archive and verify absent newer record collections are
+    migrated as empty; reject unknown future versions and broken cross-record links
+    before the existing database changes.
+- Verify replace and merge preview counts, archive/file sizes, and all-record
+    success summaries; ensure transaction errors roll back records in every store.
+- Verify the production service worker's cache allowlist includes only the app
+    shell and same-origin static assets, with no material or IndexedDB content.
+- Manually open the built app, go offline, and verify navigation and static app
+    assets still load; do not treat source-level checks as offline verification.
 
 ## Phase 4 notes checks
 

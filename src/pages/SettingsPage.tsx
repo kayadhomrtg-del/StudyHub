@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import { Archive, Database, Download, HardDriveUpload, ShieldCheck } from "lucide-react";
 import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
 import { LoadingState } from "../components/ui/StatePanel";
-import { BackupService, maxBackupBytes, type RestoreMode, type RestoreSummary } from "../features/backup/BackupService";
+import { BackupService, maxBackupBytes, type RestoreMode } from "../features/backup/BackupService";
 import { moduleDatabase } from "../features/modules/moduleDatabase";
 
 const backupService = new BackupService(moduleDatabase);
@@ -43,7 +43,7 @@ export function SettingsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [backupFile, setBackupFile] = useState<File>();
-  const [backupInfo, setBackupInfo] = useState<{ kind: "full" | "module"; summary: RestoreSummary }>();
+  const [backupInfo, setBackupInfo] = useState<Awaited<ReturnType<BackupService["inspect"]>>>();
   const [restoreMode, setRestoreMode] = useState<RestoreMode>("merge");
   const [confirmReplace, setConfirmReplace] = useState(false);
 
@@ -125,7 +125,7 @@ export function SettingsPage() {
     try {
       const summary = await backupService.restore(await backupFile.arrayBuffer(), mode);
       setSuccess(
-        `${mode === "replace" ? "Restored" : "Merged"} ${summary.modules} modules, ${summary.topics} topics, and ${summary.materials} materials (${formatBytes(summary.bytes)} of original files).`,
+        `${mode === "replace" ? "Restored" : "Merged"} ${summary.modules} modules, ${summary.topics} topics, ${summary.materials} materials, ${summary.notes} notes, ${summary.tasks} tasks, ${summary.studySessions} study sessions, ${summary.settings} settings, and ${summary.files} original files (${formatBytes(summary.bytes)}).`,
       );
       setBackupFile(undefined);
       setBackupInfo(undefined);
@@ -171,7 +171,7 @@ export function SettingsPage() {
       <section aria-labelledby="backup-heading" className="rounded-[22px] border border-line bg-surface p-5 shadow-panel sm:p-7">
         <div className="flex items-center gap-3">
           <span className="grid size-10 place-items-center rounded-xl bg-brand-soft text-brand"><Archive aria-hidden="true" size={18} /></span>
-          <div><h2 className="text-[15px] font-semibold text-ink" id="backup-heading">Full backup</h2><p className="mt-1 text-[11px] text-muted">One ZIP includes modules, topics, metadata, and every original file.</p></div>
+          <div><h2 className="text-[15px] font-semibold text-ink" id="backup-heading">Full backup</h2><p className="mt-1 text-[11px] text-muted">One ZIP includes modules, topics, materials, notes, tasks, study sessions, settings, and every original file.</p></div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <button className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-brand-strong disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void createBackup()} type="button">
@@ -181,11 +181,19 @@ export function SettingsPage() {
         <div className="mt-6 border-t border-line pt-5">
           <h3 className="text-[12px] font-semibold text-ink">Restore from backup</h3>
           <p className="mt-1 text-[11px] leading-5 text-muted">Choose a College Study Hub ZIP backup. The archive is validated before any records are changed.</p>
-          <input accept=".zip,application/zip" className="mt-3 block max-w-full text-[11px] text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-subtle file:px-3 file:py-2 file:text-[11px] file:font-medium file:text-ink" disabled={Boolean(busy)} onChange={(event) => void selectBackup(event)} type="file" />
+          <input accept=".zip,application/zip" aria-label="Choose a College Study Hub ZIP backup" className="mt-3 block max-w-full text-[11px] text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-subtle file:px-3 file:py-2 file:text-[11px] file:font-medium file:text-ink" disabled={Boolean(busy)} onChange={(event) => void selectBackup(event)} type="file" />
           {backupInfo && (
             <div className="mt-4 rounded-xl border border-line bg-canvas p-4">
               <p className="break-all text-[11px] font-semibold text-ink">{backupFile?.name} · {backupInfo.kind === "module" ? "module backup" : "full backup"}</p>
-              <p className="mt-1 text-[10px] text-muted">{backupInfo.summary.modules} modules, {backupInfo.summary.topics} topics, {backupInfo.summary.materials} materials, {formatBytes(backupInfo.summary.bytes)} of file data</p>
+              <p className="mt-2 text-[10px] leading-5 text-muted">
+                Backup v{backupInfo.version}{backupInfo.appVersion ? ` · app v${backupInfo.appVersion}` : ""} · Exported {new Date(backupInfo.exportedAt).toLocaleString()}
+              </p>
+              <p className="text-[10px] leading-5 text-muted">
+                {backupInfo.summary.modules} modules · {backupInfo.summary.topics} topics · {backupInfo.summary.materials} materials · {backupInfo.summary.notes} notes · {backupInfo.summary.tasks} tasks · {backupInfo.summary.studySessions} study sessions · {backupInfo.summary.settings} settings · {backupInfo.summary.files} original files
+              </p>
+              <p className="text-[10px] leading-5 text-muted">
+                Original file data: {formatBytes(backupInfo.summary.bytes)} · Total backup: {formatBytes(backupInfo.summary.totalBytes)}
+              </p>
               <label className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-ink" htmlFor="restore-mode">
                 Restore mode
                 <select className="rounded-lg border border-line bg-surface px-3 py-2" id="restore-mode" onChange={(event) => setRestoreMode(event.target.value as RestoreMode)} value={restoreMode}>
@@ -213,6 +221,11 @@ export function SettingsPage() {
             <div className="rounded-xl bg-canvas p-3"><dt className="text-muted">Persistent storage</dt><dd className="mt-1 font-semibold text-ink">{storage.persistent === undefined ? "Not reported" : storage.persistent ? "Granted" : "Not granted"}</dd></div>
           </dl>
         ) : <p className="mt-4 text-[11px] text-muted" role="status">Storage estimates are not available in this browser.</p>}
+        {storage?.usage !== undefined && storage.quota !== undefined && storage.quota > 0 && storage.usage / storage.quota >= 0.8 && (
+          <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100" role="status">
+            Estimated browser storage usage is above 80% of the reported quota. Download and verify a backup before adding more large files.
+          </p>
+        )}
         {storageError && <p className="mt-3 text-[11px] text-amber-800 dark:text-amber-200" role="status">{storageError}</p>}
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button className="inline-flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-[11px] font-medium text-ink hover:bg-subtle" onClick={() => void requestPersistence()} type="button">
@@ -229,7 +242,7 @@ export function SettingsPage() {
       <ConfirmationDialog
         cancelLabel="Keep current library"
         confirmLabel="Replace local library"
-        description="This replaces the current modules, topics, materials, and stored files with the selected backup. This action cannot be undone. Download a backup first if you might need the existing library."
+        description="This replaces all local modules, topics, materials and original files, notes, tasks, study sessions, and settings with the selected backup. This action cannot be undone. Download a backup first if you might need anything in the existing library."
         onCancel={() => setConfirmReplace(false)}
         onConfirm={() => void restoreBackup("replace")}
         open={confirmReplace}

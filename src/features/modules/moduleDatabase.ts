@@ -5,6 +5,7 @@ import type { TopicRecord } from "../topics/topic";
 import type { NoteRecord } from "../notes/note";
 import type { TaskRecord } from "../tasks/task";
 import type { StudySessionRecord } from "../studySessions/studySession";
+import type { AppSettingRecord } from "../settings/appSetting";
 
 export class ModuleDatabase extends Dexie {
   modules!: Table<ModuleRecord, string>;
@@ -14,6 +15,7 @@ export class ModuleDatabase extends Dexie {
   notes!: Table<NoteRecord, string>;
   tasks!: Table<TaskRecord, string>;
   studySessions!: Table<StudySessionRecord, string>;
+  appSettings!: Table<AppSettingRecord, string>;
 
   constructor(name = "CollegeStudyHub") {
     super(name);
@@ -66,6 +68,17 @@ export class ModuleDatabase extends Dexie {
       notes: "id, title, *tags, isPinned, updatedAt",
       tasks: "id, moduleId, topicId, dueAt, priority, status, type, *linkedMaterialIds, *tags, createdAt, updatedAt",
       studySessions: "id, moduleId, topicId, materialId, plannedStart, status, createdAt, updatedAt",
+    });
+    this.version(7).stores({
+      modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
+      topics: "id, moduleId, sortOrder, updatedAt",
+      materials:
+        "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt, lastOpenedAt",
+      storedFiles: "id",
+      notes: "id, title, *tags, isPinned, updatedAt",
+      tasks: "id, moduleId, topicId, dueAt, priority, status, type, *linkedMaterialIds, *tags, createdAt, updatedAt",
+      studySessions: "id, moduleId, topicId, materialId, plannedStart, status, createdAt, updatedAt",
+      appSettings: "id",
     });
   }
 }

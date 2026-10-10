@@ -5,6 +5,9 @@ import { ModuleDatabase } from "../modules/moduleDatabase";
 import type { MaterialRecord } from "../materials/material";
 import type { ModuleRecord } from "../modules/module";
 import type { TopicRecord } from "../topics/topic";
+import type { NoteRecord } from "../notes/note";
+import type { TaskRecord } from "../tasks/task";
+import type { StudySessionRecord } from "../studySessions/studySession";
 
 const databases: ModuleDatabase[] = [];
 
@@ -54,11 +57,187 @@ async function seed(database: ModuleDatabase) {
   await database.storedFiles.add({ id: materialRecord.id, bytes: originalBytes });
 }
 
+const noteRecord: NoteRecord = {
+  id: "note-1",
+  title: "Lecture notes",
+  markdown: "## Main idea",
+  tags: ["review"],
+  isPinned: true,
+  link: { type: "task", id: "task-1" },
+  createdAt: moduleRecord.createdAt,
+  updatedAt: moduleRecord.updatedAt,
+};
+const taskRecord: TaskRecord = {
+  id: "task-1",
+  title: "Review lecture",
+  description: "Read the lecture notes.",
+  moduleId: moduleRecord.id,
+  topicId: topicRecord.id,
+  priority: "high",
+  status: "in-progress",
+  type: "reading",
+  linkedMaterialIds: [materialRecord.id],
+  tags: ["review"],
+  createdAt: moduleRecord.createdAt,
+  updatedAt: moduleRecord.updatedAt,
+};
+const sessionRecord: StudySessionRecord = {
+  id: "session-1",
+  moduleId: moduleRecord.id,
+  topicId: topicRecord.id,
+  materialId: materialRecord.id,
+  title: "Review week one",
+  plannedStart: "2025-01-03T10:00:00.000Z",
+  plannedDurationMinutes: 45,
+  goal: "Summarize the lecture",
+  status: "planned",
+  actualDurationMinutes: null,
+  createdAt: moduleRecord.createdAt,
+  updatedAt: moduleRecord.updatedAt,
+};
+
+async function seedComplete(database: ModuleDatabase) {
+  await seed(database);
+  await database.notes.add(noteRecord);
+  await database.tasks.add(taskRecord);
+  await database.studySessions.add(sessionRecord);
+  await database.appSettings.add({ id: "appearance", theme: "dark" });
+}
+
 afterEach(async () => {
   await Promise.all(databases.splice(0).map((database) => database.delete()));
 });
 
 describe("BackupService", () => {
+  it("exports and restores every table, settings, and all file bytes", async () => {
+    const source = createDatabase("complete-source");
+    await seedComplete(source);
+    const service = new BackupService(source);
+    const backup = await service.createFullBackup();
+    const target = createDatabase("complete-target");
+    const targetService = new BackupService(target);
+
+    await expect(targetService.inspect(backup.slice(0))).resolves.toMatchObject({
+      kind: "full",
+      version: 2,
+      appVersion: expect.any(String),
+      summary: {
+        modules: 1,
+        topics: 1,
+        materials: 1,
+        notes: 1,
+        tasks: 1,
+        studySessions: 1,
+        settings: 1,
+        files: 1,
+        bytes: originalBytes.byteLength,
+        totalBytes: backup.byteLength,
+      },
+    });
+    await expect(targetService.restore(backup.slice(0), "replace")).resolves.toMatchObject({
+      modules: 1, topics: 1, materials: 1, notes: 1, tasks: 1,
+      studySessions: 1, settings: 1, files: 1,
+    });
+    expect(await target.notes.get(noteRecord.id)).toEqual(noteRecord);
+    expect(await target.tasks.get(taskRecord.id)).toEqual(taskRecord);
+    expect(await target.studySessions.get(sessionRecord.id)).toEqual(sessionRecord);
+    expect(await target.appSettings.get("appearance")).toEqual({ id: "appearance", theme: "dark" });
+    expect((await target.storedFiles.get(materialRecord.id))?.bytes).toEqual(originalBytes);
+  });
+
+  it("creates a valid empty backup and reports every empty count", async () => {
+    const database = createDatabase("empty");
+    const service = new BackupService(database);
+    const backup = await service.createFullBackup();
+
+    await expect(service.inspect(backup)).resolves.toMatchObject({
+      version: 2,
+      summary: {
+        modules: 0, topics: 0, materials: 0, notes: 0, tasks: 0,
+        studySessions: 0, settings: 0, files: 0, bytes: 0,
+      },
+    });
+  });
+
+  it("merges an identical appearance setting without overwriting it and rejects a different value", async () => {
+    const source = createDatabase("settings-merge-source");
+    await seedComplete(source);
+    const backup = await new BackupService(source).createFullBackup();
+
+    const matchingTarget = createDatabase("settings-merge-match");
+    await matchingTarget.appSettings.add({ id: "appearance", theme: "dark" });
+    await expect(new BackupService(matchingTarget).restore(backup.slice(0), "merge"))
+      .resolves.toMatchObject({ modules: 1, notes: 1, tasks: 1 });
+    expect(await matchingTarget.appSettings.get("appearance")).toEqual({ id: "appearance", theme: "dark" });
+    expect(await matchingTarget.modules.get(moduleRecord.id)).toEqual(moduleRecord);
+
+    const conflictingTarget = createDatabase("settings-merge-conflict");
+    await conflictingTarget.appSettings.add({ id: "appearance", theme: "light" });
+    await expect(new BackupService(conflictingTarget).restore(backup.slice(0), "merge"))
+      .rejects.toThrow(/appearance setting differs/i);
+    expect(await conflictingTarget.modules.count()).toBe(0);
+    expect(await conflictingTarget.appSettings.get("appearance")).toEqual({ id: "appearance", theme: "light" });
+  });
+
+  it("migrates a supported version 1 archive and rejects a future version", async () => {
+    const legacyArchive = new JSZip();
+    legacyArchive.file("manifest.json", JSON.stringify({
+      format: "college-study-hub-backup",
+      version: 1,
+      kind: "full",
+      exportedAt: moduleRecord.createdAt,
+      counts: { modules: 1, topics: 1, materials: 0 },
+    }));
+    legacyArchive.file("records.json", JSON.stringify({
+      modules: [moduleRecord],
+      topics: [topicRecord],
+      materials: [],
+    }));
+    const legacyBackup = await legacyArchive.generateAsync({ type: "arraybuffer" });
+    const target = createDatabase("legacy-target");
+    const service = new BackupService(target);
+
+    await expect(service.inspect(legacyBackup)).resolves.toMatchObject({
+      version: 1,
+      summary: { modules: 1, notes: 0, tasks: 0, studySessions: 0, settings: 0, files: 0 },
+    });
+    await service.restore(legacyBackup, "replace");
+    expect(await target.modules.get(moduleRecord.id)).toEqual(moduleRecord);
+    expect(await target.notes.count()).toBe(0);
+
+    const futureArchive = await JSZip.loadAsync(legacyBackup);
+    const manifest = JSON.parse(await futureArchive.file("manifest.json")!.async("string")) as { version: number };
+    manifest.version = 3;
+    futureArchive.file("manifest.json", JSON.stringify(manifest));
+    await expect(service.inspect(await futureArchive.generateAsync({ type: "arraybuffer" })))
+      .rejects.toThrow(/not supported/i);
+  });
+
+  it("rejects broken record links before replacing any existing database data", async () => {
+    const source = createDatabase("broken-link-source");
+    await seedComplete(source);
+    const archive = await JSZip.loadAsync(await new BackupService(source).createFullBackup());
+    const records = JSON.parse(await archive.file("records.json")!.async("string")) as {
+      modules: ModuleRecord[];
+      topics: TopicRecord[];
+      materials: MaterialRecord[];
+      notes: NoteRecord[];
+      tasks: TaskRecord[];
+      studySessions: StudySessionRecord[];
+      settings: { id: "appearance"; theme: "light" | "dark" }[];
+    };
+    records.tasks[0]!.topicId = "missing-topic";
+    archive.file("records.json", JSON.stringify(records));
+    const tamperedBackup = await archive.generateAsync({ type: "arraybuffer" });
+    const target = createDatabase("broken-link-target");
+    const existing = { ...moduleRecord, id: "preserved", code: "PRESERVE" };
+    await target.modules.add(existing);
+
+    await expect(new BackupService(target).restore(tamperedBackup, "replace"))
+      .rejects.toThrow(/invalid task|broken task link/i);
+    expect(await target.modules.toArray()).toEqual([existing]);
+  });
+
   it("exports and restores all metadata, relationships, and original bytes", async () => {
     const source = createDatabase("source");
     await seed(source);
@@ -135,7 +314,7 @@ describe("BackupService", () => {
     await expect(service.inspect(new Uint8Array([1, 2, 3]).buffer)).rejects.toThrow(/backup archive/i);
     await seed(database);
     await database.storedFiles.delete(materialRecord.id);
-    await expect(service.createFullBackup()).rejects.toThrow(/missing or damaged/i);
+    await expect(service.createFullBackup()).rejects.toThrow(/missing or unreferenced file records/i);
   });
 
   it("rejects declared ZIP expansion limits before inflating archive entries", async () => {
@@ -160,7 +339,7 @@ describe("BackupService", () => {
       const extraLength = view.getUint16(entryOffset + 30, true);
       const commentLength = view.getUint16(entryOffset + 32, true);
       const name = new TextDecoder().decode(new Uint8Array(bytes, entryOffset + 46, nameLength));
-      if (name === "records.json") view.setUint32(entryOffset + 24, 16 * 1024 * 1024 + 1, true);
+      if (name === "records.json") view.setUint32(entryOffset + 24, 64 * 1024 * 1024 + 1, true);
       entryOffset += 46 + nameLength + extraLength + commentLength;
     }
     await expect(new BackupService(createDatabase("zip-bomb")).inspect(bytes))
