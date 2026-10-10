@@ -20,6 +20,13 @@ export function PdfViewer({ bytes, fileName }: PdfViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rendering, setRendering] = useState(false);
+  const [documentProxy, setDocumentProxy] = useState<PdfDocument | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatches, setSearchMatches] = useState(0);
+  const [searchMatchPages, setSearchMatchPages] = useState<number[]>([]);
+  const [searchResultIndex, setSearchResultIndex] = useState(0);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -28,6 +35,9 @@ export function PdfViewer({ bytes, fileName }: PdfViewerProps) {
     setPageNumber(1);
     setPageCount(0);
     documentRef.current = null;
+    setDocumentProxy(null);
+    setSearchMatches(0);
+    setSearchError("");
 
     const loadingTask = openPdf(bytes);
     void loadingTask.promise
@@ -37,6 +47,7 @@ export function PdfViewer({ bytes, fileName }: PdfViewerProps) {
           return;
         }
         documentRef.current = document;
+        setDocumentProxy(document);
         setPageCount(document.numPages);
         setLoading(false);
       })
@@ -58,6 +69,55 @@ export function PdfViewer({ bytes, fileName }: PdfViewerProps) {
       void loadingTask.destroy();
     };
   }, [bytes]);
+
+  useEffect(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!documentProxy || !query) {
+      setSearchMatches(0);
+      setSearchMatchPages([]);
+      setSearchResultIndex(0);
+      setSearching(false);
+      setSearchError("");
+      return;
+    }
+    let active = true;
+    setSearching(true);
+    setSearchError("");
+    void (async () => {
+      try {
+        let matchCount = 0;
+        const pagesWithMatches: number[] = [];
+        const pagesToSearch = Math.min(documentProxy.numPages, 1000);
+        for (let pageNumber = 1; pageNumber <= pagesToSearch; pageNumber += 1) {
+          const page = await documentProxy.getPage(pageNumber);
+          const content = await page.getTextContent();
+          const pageText = content.items
+            .flatMap((item) => "str" in item ? [item.str] : [])
+            .join(" ")
+            .toLocaleLowerCase();
+          const pageMatches = pageText.split(query).length - 1;
+          matchCount += pageMatches;
+          if (pageMatches > 0) pagesWithMatches.push(pageNumber);
+        }
+        if (active) {
+          setSearchMatches(matchCount);
+          setSearchMatchPages(pagesWithMatches);
+          setSearchResultIndex(0);
+        }
+      } catch (searchFailure) {
+        if (active) {
+          setSearchError(
+            searchFailure instanceof Error
+              ? `PDF text search failed: ${searchFailure.message}`
+              : "PDF text search failed.",
+          );
+        }
+      } finally {
+        if (active) setSearching(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [documentProxy, searchQuery]);
 
   useEffect(() => {
     const updateWidth = () => {
@@ -145,6 +205,48 @@ export function PdfViewer({ bytes, fileName }: PdfViewerProps) {
           >
             Next
           </button>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-[11px] text-muted sm:px-4">
+          <label htmlFor="pdf-search">Find in PDF</label>
+          <input
+            aria-label="Search PDF text"
+            className="min-w-0 flex-1 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-ink"
+            id="pdf-search"
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search document text"
+            type="search"
+            value={searchQuery}
+          />
+          <span aria-live="polite" className="min-w-24 text-right">
+            {searching
+              ? "Searching…"
+              : searchError ||
+                (searchQuery
+                  ? `${searchMatches} matches on ${searchMatchPages.length} pages${documentProxy && documentProxy.numPages > 1000 ? " (first 1,000 pages)" : ""}`
+                  : "")}
+          </span>
+          <button
+            aria-label="Previous PDF search result"
+            className="rounded-lg border border-line px-2 py-1.5 text-ink disabled:opacity-40"
+            disabled={searching || searchMatchPages.length === 0}
+            onClick={() => {
+              const index = (searchResultIndex - 1 + searchMatchPages.length) % searchMatchPages.length;
+              setSearchResultIndex(index);
+              setPageNumber(searchMatchPages[index] ?? 1);
+            }}
+            type="button"
+          >Previous match</button>
+          <button
+            aria-label="Next PDF search result"
+            className="rounded-lg border border-line px-2 py-1.5 text-ink disabled:opacity-40"
+            disabled={searching || searchMatchPages.length === 0}
+            onClick={() => {
+              const index = (searchResultIndex + 1) % searchMatchPages.length;
+              setSearchResultIndex(index);
+              setPageNumber(searchMatchPages[index] ?? 1);
+            }}
+            type="button"
+          >Next match</button>
         </div>
         <div className="flex items-center gap-2">
           <button

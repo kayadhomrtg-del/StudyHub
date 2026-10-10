@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpLeft, Heart } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorState, LoadingState } from "../components/ui/StatePanel";
-import { MaterialFileViewer } from "../features/materials/MaterialFileViewer";
+import { DownloadOriginal, MaterialFileViewer } from "../features/materials/MaterialFileViewer";
 import type { MaterialRecord } from "../features/materials/material";
 import { materialService } from "../features/materials/MaterialService";
 import { studyStatusLabels, studyStatuses, type StudyStatus } from "../features/studyStatus";
@@ -235,6 +235,7 @@ export function MaterialViewerPage() {
       </header>
 
       {actionError && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200" role="alert">{actionError}</p>}
+      <DownloadOriginal bytes={loaded.bytes} material={material} />
       <MaterialFileViewer bytes={loaded.bytes} key={material.id} material={material} />
     </div>
   );

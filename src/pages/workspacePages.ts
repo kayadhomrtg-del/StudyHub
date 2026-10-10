@@ -73,10 +73,9 @@ export const workspacePages: WorkspacePageInfo[] = [
     path: "/settings",
     title: "Settings",
     eyebrow: "YOUR PREFERENCES",
-    description: "A few thoughtful controls for the way your study space feels.",
-    emptyTitle: "Your settings, your space",
-    emptyDescription:
-      "Appearance can be adjusted from the top bar. Data and storage preferences will be added alongside local persistence.",
+    description: "Manage local backups, browser storage information, and appearance.",
+    emptyTitle: "Settings and backups",
+    emptyDescription: "Back up or restore your library and review this browser's storage.",
     icon: Settings2,
   },
 ];

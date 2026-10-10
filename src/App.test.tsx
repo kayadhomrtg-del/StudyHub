@@ -44,8 +44,12 @@ describe("application foundation", () => {
           screen.getByRole("heading", { name: /Good .* scholar/i }),
         ).toBeInTheDocument();
       } else {
-        const pageTitle = item.path === "/modules" ? "Your modules" : item.label;
-        expect(screen.getByRole("heading", { name: pageTitle })).toBeInTheDocument();
+        const pageTitle = item.path === "/modules"
+          ? "Your modules"
+          : item.path === "/settings"
+            ? "Settings & backups"
+            : item.label;
+        expect(await screen.findByRole("heading", { name: pageTitle })).toBeInTheDocument();
       }
       expect(
         navigation.getByRole("link", { name: item.label }),

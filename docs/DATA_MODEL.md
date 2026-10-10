@@ -63,9 +63,40 @@ stored bytes in a single transaction.
 
 The viewer loads metadata and file bytes through the material service. Opening
 a material updates `lastOpenedAt` without changing its content `updatedAt`.
-PDF, browser-supported raster image, and plain-text files are previewed locally.
-HTML and code are inserted as text nodes, never HTML markup. Other formats are
-downloadable in their original form and are not advertised as previews.
+PDF, browser-supported raster images, DOCX, PPTX, XLSX, Markdown, and supported
+source/text formats are previewed locally. DOCX rendering is sanitized and
+isolated in a sandboxed frame, Markdown raw HTML is disabled, and source text is
+highlighted without executing it. PDF, DOCX, PPTX, XLSX, and text content can
+be searched in-app; XLSX search covers the worksheet data loaded for preview.
+Every material retains an original download action. Office preview limits are
+100 MiB per file; text/code preview is limited to 8 MiB / 2 million characters.
+Spreadsheet previews show at most 500 rows by 40 columns per worksheet.
+DOCX/PPTX/XLSX previews reject ZIP containers exceeding 10,000 entries or
+200 MiB expanded. Backup imports are preflighted before inflation, limited to
+10,002 entries and 512 MiB of original file data plus bounded metadata, and
+verify entry CRCs before records can be restored.
+
+## Backup format version 1
+
+Backups do not alter the IndexedDB schema. A ZIP contains `manifest.json`
+(format, version, kind, export timestamp, and record counts), `records.json`
+(module/topic/material metadata), and one `files/<material-id>.bin` entry for
+each material's exact original bytes. Full backups include unassigned records;
+module backups contain that module, its topics, assigned materials, and their
+bytes. Export fails explicitly if any associated bytes are missing or do not
+match metadata. Restore validates the whole archive and relationships first.
+Merge rejects existing IDs and case-insensitive module-code conflicts without
+writing; replace clears and writes all four stores in one Dexie transaction
+after explicit user confirmation. Backup archives are limited to 512 MiB,
+10,002 entries, and a bounded expanded size before decompression.
+
+## Storage retention
+
+Course data remains in this browser's IndexedDB. Settings displays browser
+storage usage/quota estimates where supported and allows a user-triggered
+persistent-storage request. A grant depends on browser policy and does not
+protect against disk/profile failure or deliberate storage clearing. Keep
+downloaded backups outside the browser.
 
 ## Future schema changes
 

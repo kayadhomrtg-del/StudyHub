@@ -66,11 +66,32 @@ each milestone complete.
     malformed PDF bytes.
 - Verify common raster image formats show a preview and damaged images report
     an error with an original download option.
-- Verify TXT, Markdown, code, JSON, CSS, and HTML are displayed as plain text;
-    imported HTML never creates live elements.
-- Verify unsupported formats report filename, MIME type, and size and allow the
-    original file to be downloaded. DOCX/PPTX/XLSX preview is not supported.
+- Verify TXT, Markdown, code, JSON, CSS, and HTML previews remain inert;
+    Markdown raw HTML and imported HTML never create live elements.
+- Verify DOCX formatting, PPTX slide parsing/navigation, and XLSX worksheet
+    parsing/selection with local Open XML fixtures and malformed-file errors.
+- Verify text search reports matches in supported documents and the original
+    file remains downloadable from every viewer.
 - Navigate between materials assigned to the same topic and verify changing
     files releases the prior viewer resources and records the new open timestamp.
 - Verify object URLs and PDF render/document resources are cleaned up on switch
     and unmount.
+
+## Backup, recovery, and storage checks
+
+- Export a full backup and restore it into a fresh IndexedDB database; compare
+    module/topic/material relationships and byte-for-byte original-file contents.
+- Export and restore a module backup and verify it includes that module's
+    topics, assigned materials, and original bytes.
+- Reject malformed archives, unsupported versions, missing file entries,
+    mismatched sizes, broken references, duplicate IDs, and conflicting module
+    codes before mutating any record.
+- Reject ZIP archives whose declared expansion exceeds limits before inflation,
+    and reject entries with invalid CRCs before restoring their contents.
+- Simulate a write/quota failure during restore and verify the Dexie transaction
+    rolls back without removing previously stored records.
+- Verify merge leaves existing records intact and replace requires confirmation.
+- Verify Settings accurately reports estimate/persistence API support and
+    handles denied or unsupported persistent-storage requests.
+- Verify full export fails explicitly when stored bytes are missing; no material
+    is silently omitted from a backup.

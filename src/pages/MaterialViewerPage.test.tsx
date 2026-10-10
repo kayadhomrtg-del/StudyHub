@@ -100,7 +100,7 @@ describe("MaterialViewerPage", () => {
 
     resolveMaterial?.(material);
     expect(await screen.findByRole("heading", { name: "slow" })).toBeInTheDocument();
-    expect(screen.getByText("ready")).toBeInTheDocument();
+    expect(await screen.findByText("ready")).toBeInTheDocument();
   });
 
   it("displays imported HTML as plain text and never creates live markup", async () => {
@@ -113,7 +113,10 @@ describe("MaterialViewerPage", () => {
 
     renderViewer(material.id);
 
-    const pre = await screen.findByLabelText("Plain text viewer for lesson.html");
+    const preview = await screen.findByRole("region", { name: "Text preview for lesson.html" });
+    const pre = preview.querySelector("pre");
+    expect(pre).not.toBeNull();
+    if (!pre) throw new Error("The plain-text preview did not render its preformatted text.");
     expect(pre).toHaveTextContent(html);
     expect(pre.querySelector("script, h2")).toBeNull();
     expect(window).not.toHaveProperty("compromised");
@@ -159,6 +162,10 @@ describe("MaterialViewerPage", () => {
     const { unmount } = renderViewer(material.id);
 
     expect(await screen.findByRole("region", { name: "PDF viewer for valid.pdf" })).toBeInTheDocument();
+    const searchInput = screen.getByRole("searchbox", { name: "Search PDF text" });
+    expect(searchInput).toHaveAttribute("id", "pdf-search");
+    expect(screen.getByText("Find in PDF").closest("label")).toHaveAttribute("for", "pdf-search");
+    expect(screen.getByRole("button", { name: "Next PDF search result" }).closest("label")).toBeNull();
     unmount();
     await waitFor(() => expect(destroy).toHaveBeenCalledOnce());
   });
@@ -176,10 +183,10 @@ describe("MaterialViewerPage", () => {
 
     const { unmount } = renderViewer(material.id);
 
-    expect(await screen.findByRole("heading", { name: "Preview not available" })).toBeInTheDocument();
-    expect(screen.getAllByText("handout.docx")).toHaveLength(2);
-    expect(screen.getAllByText(material.mimeType)).toHaveLength(2);
-    expect(screen.getAllByText("1.5 KB")).toHaveLength(2);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/preview could not be opened/i);
+    expect(screen.getByText("handout.docx")).toBeInTheDocument();
+    expect(screen.getByText(material.mimeType)).toBeInTheDocument();
+    expect(screen.getByText("1.5 KB")).toBeInTheDocument();
     const download = await screen.findByRole("link", { name: "Download original" });
     expect(download).toHaveAttribute("href", "blob:local-original");
     expect(download).toHaveAttribute("download", "handout.docx");
@@ -243,7 +250,7 @@ describe("MaterialViewerPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next material in topic" }));
 
     expect(await screen.findByRole("heading", { name: "second" })).toBeInTheDocument();
-    expect(screen.getByText("second content")).toBeInTheDocument();
+    expect(await screen.findByText("second content")).toBeInTheDocument();
     await waitFor(async () => {
       expect((await moduleDatabase.materials.get("second"))?.lastOpenedAt).toBeTruthy();
     });

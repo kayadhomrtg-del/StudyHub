@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent, type ReactNode } from "react";
 import {
   Archive,
   ArrowLeft,
   CalendarDays,
   Clock3,
+  Download,
   Pencil,
   RotateCcw,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
@@ -15,6 +17,10 @@ import { ModuleFormDialog } from "../features/modules/ModuleFormDialog";
 import type { ModuleRecord } from "../features/modules/module";
 import { moduleService } from "../features/modules/ModuleService";
 import { ModuleTopics } from "../features/topics/ModuleTopics";
+import { BackupService, maxBackupBytes } from "../features/backup/BackupService";
+import { moduleDatabase } from "../features/modules/moduleDatabase";
+
+const backupService = new BackupService(moduleDatabase);
 
 export function ModuleDetailPage() {
   const { moduleId } = useParams();
@@ -23,8 +29,51 @@ export function ModuleDetailPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [operationError, setOperationError] = useState("");
+  const [operationSuccess, setOperationSuccess] = useState("");
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function exportModule() {
+    if (!module) return;
+    setOperationError("");
+    setOperationSuccess("");
+    try {
+      const backup = await backupService.createModuleBackup(module.id);
+      const url = URL.createObjectURL(new Blob([backup], { type: "application/zip" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `college-study-hub-${module.code.replace(/[^\w-]+/g, "-")}.zip`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : "The module backup could not be created.");
+    }
+  }
+
+  async function importModule(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setOperationError("");
+    setOperationSuccess("");
+    try {
+      if (file.size > maxBackupBytes) {
+        throw new Error("This backup exceeds the 512 MiB restore limit.");
+      }
+      const bytes = await file.arrayBuffer();
+      const backup = await backupService.inspect(bytes);
+      if (backup.kind !== "module") {
+        throw new Error("Choose a module backup exported from a module detail page.");
+      }
+      const summary = await backupService.restore(bytes, "merge");
+      setOperationSuccess(
+        `Restored ${summary.modules} module, ${summary.topics} topics, and ${summary.materials} materials from the backup.`,
+      );
+      await loadModule();
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : "The module backup could not be restored.");
+    }
+  }
 
   const loadModule = useCallback(async () => {
     if (!moduleId) {
@@ -119,6 +168,7 @@ export function ModuleDetailPage() {
           <ErrorState message={operationError} onRetry={() => setOperationError("")} />
         </div>
       )}
+      {operationSuccess && <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[12px] text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200" role="status">{operationSuccess}</p>}
 
       <section className="overflow-hidden rounded-[24px] border border-line bg-surface shadow-panel">
         <div
@@ -146,6 +196,14 @@ export function ModuleDetailPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-[11px] font-medium text-ink hover:bg-subtle"
+                onClick={() => void exportModule()}
+                type="button"
+              >
+                <Download aria-hidden="true" size={14} />
+                Export backup
+              </button>
               <button
                 className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-[11px] font-medium text-ink hover:bg-subtle"
                 onClick={() => setEditing(true)}
@@ -214,6 +272,15 @@ export function ModuleDetailPage() {
             </p>
           </div>
 
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-5">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-[11px] font-medium text-ink hover:bg-subtle">
+              <Upload aria-hidden="true" size={14} />
+              Restore module backup
+              <input accept=".zip,application/zip" className="sr-only" onChange={(event) => void importModule(event)} type="file" />
+            </label>
+            <p className="text-[10px] text-muted">Restores as a merge. Existing matching IDs or module codes are reported without overwriting.</p>
+          </div>
+
           <ModuleTopics moduleId={module.id} />
         </div>
       </section>
@@ -233,7 +300,7 @@ export function ModuleDetailPage() {
       <ConfirmationDialog
         cancelLabel="Keep module"
         confirmLabel="Delete module"
-        description={`“${module.name}” will be permanently removed from this device. This cannot be undone.`}
+        description={`“${module.name}” will be removed. Its topics will be deleted, but associated materials and original files will remain on this device as unassigned items.`}
         onCancel={() => setConfirmDelete(false)}
         onConfirm={() => void handleDelete()}
         open={confirmDelete}

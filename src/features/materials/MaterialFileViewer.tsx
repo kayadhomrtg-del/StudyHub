@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import type { MaterialRecord } from "./material";
 import { PdfViewer } from "./PdfViewer";
+import { OfficePreview } from "./OfficePreview";
 
 interface MaterialFileViewerProps {
   material: MaterialRecord;
   bytes: ArrayBuffer;
 }
 
-type ViewerKind = "pdf" | "image" | "text" | "unsupported";
+type ViewerKind = "pdf" | "image" | "text" | "office" | "unsupported";
 
 const textExtensions = new Set([
   "txt", "md", "markdown", "cpp", "cc", "cxx", "h", "hpp", "c", "js", "jsx",
@@ -21,6 +22,7 @@ const imageExtensions = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "av
 function getViewerKind(material: MaterialRecord): ViewerKind {
   const extension = material.extension ?? "";
   if (extension === "pdf" || material.mimeType === "application/pdf") return "pdf";
+  if (["docx", "pptx", "xlsx", "xlsm"].includes(extension)) return "office";
   if (imageExtensions.has(extension) || /^image\/(png|jpeg|gif|webp|bmp|avif|x-icon)$/i.test(material.mimeType)) {
     return "image";
   }
@@ -68,7 +70,7 @@ function formatFileSize(sizeBytes: number): string {
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function DownloadOriginal({
+export function DownloadOriginal({
   material,
   bytes,
 }: MaterialFileViewerProps) {
@@ -103,7 +105,6 @@ function ImageViewer({ material, bytes }: MaterialFileViewerProps) {
     return (
       <div className="rounded-2xl border border-line bg-surface p-6">
         <p className="text-[13px] font-medium text-ink" role="alert">This image could not be opened. The file may be damaged.</p>
-        <DownloadOriginal bytes={bytes} material={material} />
       </div>
     );
   }
@@ -122,27 +123,15 @@ function ImageViewer({ material, bytes }: MaterialFileViewerProps) {
 }
 
 export function MaterialFileViewer({ material, bytes }: MaterialFileViewerProps) {
-  switch (getViewerKind(material)) {
+  const kind = getViewerKind(material);
+  if (kind === "office") return <OfficePreview bytes={bytes} material={material} />;
+  switch (kind) {
     case "pdf":
       return <PdfViewer bytes={bytes} fileName={material.originalFileName} />;
     case "image":
       return <ImageViewer bytes={bytes} material={material} />;
-    case "text": {
-      const text = new TextDecoder("utf-8").decode(bytes);
-      return (
-        <section
-          aria-label={`Plain text viewer for ${material.originalFileName}`}
-          className="overflow-hidden rounded-2xl border border-line bg-surface shadow-panel"
-        >
-          <div className="border-b border-line px-4 py-2 text-[10px] font-medium uppercase tracking-wide text-muted">
-            Plain text · {material.extension?.toUpperCase() ?? "TEXT"}
-          </div>
-          <pre className="max-h-[75vh] overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-[12px] leading-6 text-ink">
-            {text}
-          </pre>
-        </section>
-      );
-    }
+    case "text":
+      return <OfficePreview bytes={bytes} material={material} />;
     case "unsupported":
       return (
         <section
@@ -163,7 +152,6 @@ export function MaterialFileViewer({ material, bytes }: MaterialFileViewerProps)
             <dt className="font-medium text-muted">File size</dt>
             <dd className="text-ink">{formatFileSize(material.sizeBytes)}</dd>
           </dl>
-          <DownloadOriginal bytes={bytes} material={material} />
         </section>
       );
   }

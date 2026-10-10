@@ -149,9 +149,9 @@ Use a dedicated, distraction-reduced reading layout:
 Supported formats for initial release:
 - **PDF:** embedded PDF.js viewer with page navigation and zoom.
 - **Images:** JPG, PNG, WebP, GIF where browser supports them.
-- **Text/code:** TXT, MD, CPP, H, C, JS, TS, HTML, CSS, JSON, and other plain-text files displayed safely as text with syntax highlighting as a later enhancement.
+- **Text/code:** TXT and Markdown preview plus syntax-highlighted C/C++, C, JavaScript, TypeScript, Python, HTML/XML, CSS, JSON, and SQL. Raw HTML is never enabled in Markdown.
 - **Audio/video:** optional if browser can play the format; no transcoding.
-- **DOCX/PPTX/XLSX:** do not promise perfect preview in v1. Provide safe download/open-original fallback. Add a local conversion/preview strategy only after the basics work.
+- **DOCX/PPTX/XLSX:** preview locally with formatting preservation appropriate to the browser; retain the original-download action. Spreadsheet preview is bounded to 500 rows by 40 columns per sheet, and preview fidelity can vary by document features.
 - **External links:** display a link card and open only after the user clicks.
 
 PDF requirements:
