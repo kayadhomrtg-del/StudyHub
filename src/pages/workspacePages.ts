@@ -41,20 +41,18 @@ export const workspacePages: WorkspacePageInfo[] = [
     path: "/calendar",
     title: "Calendar",
     eyebrow: "YOUR TIME",
-    description: "See your academic commitments and study sessions in one view.",
+    description: "View task deadlines and planned study sessions by date.",
     emptyTitle: "Your calendar is clear",
-    emptyDescription:
-      "Once planning features arrive, dates and study sessions will have a home here.",
+    emptyDescription: "Tasks with due dates and planned sessions will appear here.",
     icon: CalendarDays,
   },
   {
     path: "/planner",
     title: "Study planner",
     eyebrow: "YOUR ROUTINE",
-    description: "Make a little room for focused, intentional study.",
-    emptyTitle: "Your plan starts here",
-    emptyDescription:
-      "Study sessions are not available yet. This page is the foundation for planning features in a future milestone.",
+    description: "Create and manage study sessions for your modules.",
+    emptyTitle: "No study sessions planned",
+    emptyDescription: "Plan time for a module, topic, or material. Sessions also appear on your calendar.",
     icon: Sparkles,
   },
   {

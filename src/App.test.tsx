@@ -50,7 +50,9 @@ describe("application foundation", () => {
             ? "Settings & backups"
             : item.path === "/search"
               ? "Search your study hub"
-            : item.label;
+              : item.path === "/calendar"
+                ? "Calendar"
+              : item.label;
         expect(await screen.findByRole("heading", { name: pageTitle })).toBeInTheDocument();
       }
       expect(

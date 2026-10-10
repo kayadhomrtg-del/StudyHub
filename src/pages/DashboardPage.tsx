@@ -16,6 +16,8 @@ import { materialService } from "../features/materials/MaterialService";
 import type { MaterialRecord } from "../features/materials/material";
 import { taskService } from "../features/tasks/TaskService";
 import type { TaskRecord } from "../features/tasks/task";
+import { studySessionService } from "../features/studySessions/StudySessionService";
+import type { StudySessionRecord } from "../features/studySessions/studySession";
 
 function formatDeadline(value: string): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -29,10 +31,10 @@ const dashboardCards = [
     path: "/modules",
   },
   {
-    title: "Upcoming tasks",
-    description: "Your next real due dates.",
+    title: "Upcoming commitments",
+    description: "Your next tasks and study sessions.",
     icon: CalendarDays,
-    path: "/tasks",
+    path: "/calendar",
   },
   {
     title: "Task completion",
@@ -46,13 +48,15 @@ interface DashboardData {
   activeModules: ModuleRecord[];
   recentMaterials: MaterialRecord[];
   upcomingTasks: TaskRecord[];
+  upcomingSessions: StudySessionRecord[];
+  sessions: StudySessionRecord[];
   tasks: TaskRecord[];
   materials: MaterialRecord[];
 }
 
 export function DashboardPage() {
   const [data, setData] = useState<DashboardData>({
-    activeModules: [], recentMaterials: [], upcomingTasks: [], tasks: [], materials: [],
+    activeModules: [], recentMaterials: [], upcomingTasks: [], upcomingSessions: [], sessions: [], tasks: [], materials: [],
   });
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState("");
@@ -61,7 +65,8 @@ export function DashboardPage() {
       moduleService.getAll(),
       materialService.getAll(),
       taskService.getAll(),
-    ]).then(([modules, materials, tasks]) => {
+      studySessionService.getAll(),
+    ]).then(([modules, materials, tasks, sessions]) => {
       const now = Date.now();
       setData({
         activeModules: modules.filter((module) => !module.isArchived),
@@ -78,6 +83,11 @@ export function DashboardPage() {
           )
           .sort((left, right) => Date.parse(left.dueAt!) - Date.parse(right.dueAt!))
           .slice(0, 5),
+        upcomingSessions: sessions
+          .filter((session) => session.status === "planned" && Date.parse(session.plannedStart) >= now)
+          .sort((left, right) => Date.parse(left.plannedStart) - Date.parse(right.plannedStart))
+          .slice(0, 5),
+        sessions,
         tasks,
         materials,
       });
@@ -93,9 +103,13 @@ export function DashboardPage() {
     () => data.materials.filter((material) => material.status === "completed").length,
     [data.materials],
   );
+  const completedSessions = useMemo(
+    () => data.sessions.filter((session) => session.status === "completed").length,
+    [data.sessions],
+  );
   const cardValues: Record<string, string> = {
     "Active modules": `${data.activeModules.length} active ${data.activeModules.length === 1 ? "module" : "modules"}`,
-    "Upcoming tasks": `${data.upcomingTasks.length} upcoming ${data.upcomingTasks.length === 1 ? "task" : "tasks"}`,
+    "Upcoming commitments": `${data.upcomingTasks.length + data.upcomingSessions.length} upcoming ${(data.upcomingTasks.length + data.upcomingSessions.length) === 1 ? "item" : "items"}`,
     "Task completion": `${completedTasks} of ${data.tasks.length} complete`,
   };
   const hour = new Date().getHours();
@@ -225,23 +239,28 @@ export function DashboardPage() {
                 <div className="space-y-3">
                   <p className="text-[11px] text-muted"><span className="font-semibold text-ink">{completedTasks} / {data.tasks.length}</span> tasks completed or submitted</p>
                   <p className="text-[11px] text-muted"><span className="font-semibold text-ink">{completedMaterials} / {data.materials.length}</span> materials marked completed</p>
+                  <p className="text-[11px] text-muted"><span className="font-semibold text-ink">{completedSessions} / {data.sessions.length}</span> study sessions completed</p>
                 </div>}
             </section>
           </div>
           <section aria-labelledby="deadlines-heading" className="mt-4 rounded-2xl border border-line bg-surface p-4 shadow-soft">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-[13px] font-semibold text-ink" id="deadlines-heading">Upcoming tasks</h2>
-              <Link className="text-[10px] font-semibold text-brand hover:text-brand-strong" to="/tasks">View tasks</Link>
+              <h2 className="text-[13px] font-semibold text-ink" id="deadlines-heading">Upcoming commitments</h2>
+              <Link className="text-[10px] font-semibold text-brand hover:text-brand-strong" to="/calendar">View calendar</Link>
             </div>
             {dashboardLoading ? <LoadingState label="Loading upcoming tasks" /> :
               dashboardError ? null :
-                data.upcomingTasks.length ? <ul className="divide-y divide-line">
-                  {data.upcomingTasks.map((task) => task.dueAt && <li className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0" key={task.id}>
+                data.upcomingTasks.length + data.upcomingSessions.length ? <ul className="divide-y divide-line">
+                  {data.upcomingTasks.map((task) => task.dueAt && <li className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0" key={`task-${task.id}`}>
                     <Link className="min-w-0 truncate text-[11px] font-medium text-ink hover:text-brand" to={`/tasks?taskId=${encodeURIComponent(task.id)}`}>{task.title}</Link>
                     <time className="shrink-0 text-[10px] text-muted" dateTime={task.dueAt}>{formatDeadline(task.dueAt)}</time>
                   </li>)}
+                  {data.upcomingSessions.map((session) => <li className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0" key={`session-${session.id}`}>
+                    <Link className="min-w-0 truncate text-[11px] font-medium text-ink hover:text-brand" to={`/planner?sessionId=${encodeURIComponent(session.id)}`}>{session.title}</Link>
+                    <time className="shrink-0 text-[10px] text-muted" dateTime={session.plannedStart}>{formatDeadline(session.plannedStart)}</time>
+                  </li>)}
                 </ul> :
-                  <p className="py-2 text-[11px] text-muted">No upcoming tasks with a due date.</p>}
+                  <p className="py-2 text-[11px] text-muted">No upcoming tasks or study sessions.</p>}
           </section>
         </section>
 

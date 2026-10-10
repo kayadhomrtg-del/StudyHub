@@ -31,6 +31,12 @@ const AsyncTasksPage = lazy(() =>
 const AsyncSearchPage = lazy(() =>
   import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })),
 );
+const AsyncCalendarPage = lazy(() =>
+  import("./pages/CalendarPage").then((module) => ({ default: module.CalendarPage })),
+);
+const AsyncStudyPlannerPage = lazy(() =>
+  import("./pages/StudyPlannerPage").then((module) => ({ default: module.StudyPlannerPage })),
+);
 
 function RouteLoading({ label }: { label: string }) {
   return <LoadingState label={label} />;
@@ -48,8 +54,10 @@ export function AppRoutes() {
         <Route path="notes/:noteId?" element={<Suspense fallback={<RouteLoading label="Loading notes" />}><AsyncNotesPage /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<RouteLoading label="Loading tasks" />}><AsyncTasksPage /></Suspense>} />
         <Route path="search" element={<Suspense fallback={<RouteLoading label="Loading search" />}><AsyncSearchPage /></Suspense>} />
+        <Route path="calendar" element={<Suspense fallback={<RouteLoading label="Loading calendar" />}><AsyncCalendarPage /></Suspense>} />
+        <Route path="planner" element={<Suspense fallback={<RouteLoading label="Loading study planner" />}><AsyncStudyPlannerPage /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<RouteLoading label="Loading settings" />}><AsyncSettingsPage /></Suspense>} />
-        {workspacePages.filter((page) => !["/settings", "/notes", "/tasks", "/search"].includes(page.path)).map((page) => (
+        {workspacePages.filter((page) => !["/settings", "/notes", "/tasks", "/search", "/calendar", "/planner"].includes(page.path)).map((page) => (
           <Route
             key={page.path}
             path={page.path.slice(1)}

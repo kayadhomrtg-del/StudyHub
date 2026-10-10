@@ -45,6 +45,7 @@ export class TopicRepository {
       this.database.materials,
       this.database.notes,
       this.database.tasks,
+      this.database.studySessions,
       async () => {
         const topic = await this.database.topics.get(id);
         if (!topic) {
@@ -63,6 +64,10 @@ export class TopicRepository {
         await this.database.tasks.where("topicId").equals(id).modify((task) => {
           delete task.topicId;
           task.updatedAt = new Date().toISOString();
+        });
+        await this.database.studySessions.where("topicId").equals(id).modify((session) => {
+          delete session.topicId;
+          session.updatedAt = new Date().toISOString();
         });
         await this.database.topics.delete(id);
       },

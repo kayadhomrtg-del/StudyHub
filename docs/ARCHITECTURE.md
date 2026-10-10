@@ -20,6 +20,8 @@
   search, and relationship validation.
 - `src/features/tasks/` owns task records, validation, filtering, sorting, and
   task/module/topic/material relationship checks.
+- `src/features/studySessions/` owns study-session types, validation, local-time
+  conversion, and repository-backed persistence.
 - `src/features/search/` provides metadata-only queries and category-grouped
   local search results without reading stored file bytes.
 - `src/features/backup/` creates and validates versioned local ZIP archives,
@@ -27,9 +29,9 @@
 - `src/pages/` contains the dashboard, modules collection/detail, route shells,
   settings/backup controls, and not-found page.
 
-The v5 IndexedDB database is local to this browser profile on this device.
-Module, topic, material, note, and task reads/writes flow through Dexie
-repositories and services, not page components. A material import writes
+The v6 IndexedDB database is local to this browser profile on this device.
+Module, topic, material, note, task, and study-session reads/writes flow through
+Dexie repositories and services, not page components. A material import writes
 metadata and original file bytes in one per-file transaction. The viewer
 retrieves metadata and bytes independently through the material service. PDF.js
 and its worker are bundled locally. DOCX, PPTX, and XLSX processing is local;
@@ -45,7 +47,12 @@ preserving its content. Task records persist in IndexedDB; task links and
 module/topic/material relationships are validated and cleaned transactionally.
 Global search reads module, topic, material metadata, note, and task stores only;
 it never loads the stored-file byte store. The dashboard derives active-module,
-recent-material, upcoming-task, and completion summaries from live local records.
+recent-material, upcoming-task/session, and completion summaries from live local
+records. Calendar provides month and selected-day agenda views of dated tasks
+and study sessions with module and item-type filters; selecting a session opens
+its record in the separate Study planner area. Study planner owns session
+creation, editing, completion/skipping, and deletion. Session start times are
+entered using browser-local controls and stored as ISO values.
 
 `BackupService` writes a documented ZIP containing a manifest, JSON records,
 and a separate binary entry for every material. It checks relationships,
@@ -74,7 +81,6 @@ download, document search, topic navigation, and last-opened tracking. Full and
 module-scoped backup/restore use ZIP format version 1 without changing the
 IndexedDB schema. Phase 4 adds local Markdown notes and Phase 5 adds local task
 management. Notes and tasks are not yet included in that backup format. Phase 6 adds
-cross-library search and database-backed dashboard summaries. Calendar events
-and study sessions are not included. Future schema changes must
-increment the Dexie version and include a migration without deleting existing
-user data.
+cross-library search and database-backed dashboard summaries. Phase 7 adds a
+local calendar and study sessions in schema version 6. Future schema changes
+must increment the Dexie version and preserve existing user data.

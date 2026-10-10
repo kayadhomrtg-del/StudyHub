@@ -1,13 +1,14 @@
 # Data model
 
-## Current schema: version 5
+## Current schema: version 6
 
-`src/features/modules/moduleDatabase.ts` declares Dexie database version 5.
+`src/features/modules/moduleDatabase.ts` declares Dexie database version 6.
 The v2 migration adds topic, material metadata, and stored-file stores while
 preserving existing modules. Version 3 adds an index for material last-opened
 timestamps without rewriting or deleting existing material or file records.
 Version 4 adds the notes store without changing existing records.
 Version 5 adds the tasks store without changing existing records.
+Version 6 adds the study-sessions store without rewriting existing records.
 Module IDs are UUID strings. Records contain:
 
 - `id`, `name`, `code`
@@ -72,6 +73,22 @@ linked record is deleted; deleting a task also clears note links to it without
 deleting the note. Missing due dates are allowed. The dashboard lists only
 real, future-dated tasks that are not completed or submitted.
 
+### Study session
+
+Study sessions are local planner records with a required module, title, planned
+start instant, and planned duration in whole minutes. Topic, material, goal,
+and actual duration are optional. Status is `planned`, `completed`, or
+`skipped`. Planned starts are entered and displayed in the browser's local
+timezone, then stored as ISO instants so they remain unambiguous across
+timezones and daylight-saving changes. Non-existent local wall times during a
+spring-forward transition are rejected. An ambiguous repeated fall-back time
+uses the earlier occurrence selected by JavaScript `Date` in the tested runtime;
+the datetime-local control cannot express which occurrence was intended.
+Deleting a linked module, topic, or material clears that relationship while
+retaining the session record. The separate Study planner area owns session
+creation and management. Calendar displays these session records alongside task
+deadlines and opens a selected session in Study planner.
+
 ### Local search and dashboard queries
 
 Global search runs against module, topic, material metadata, note, and task
@@ -81,12 +98,13 @@ load original file bytes. Topic descriptions are optional; older topics without
 a description remain searchable by title. Dashboard module counts, recent
 materials, upcoming tasks, and task/material completion totals are derived
 from persisted records; an empty database shows zero/empty states rather than
-sample activity.
+sample activity. Upcoming commitments include only future tasks that are not
+completed or submitted and future sessions still marked planned.
 
 ## Persistence boundary
 
-Reads/writes flow through dedicated module, topic, material, note, and task
-repositories and services. Module validation, including case-insensitive
+Reads and writes flow through dedicated module, topic, material, note, task,
+and study-session repositories and services. Module validation, including case-insensitive
 module-code uniqueness, happens before writing. File metadata and bytes are
 written atomically per imported file. UI components do not query IndexedDB
 directly.
@@ -141,7 +159,6 @@ downloaded backups outside the browser.
 
 ## Future schema changes
 
-Subsequent milestones may add calendar and planning records. Every schema
-change must increment the Dexie version and provide a migration that preserves
-existing user data. Never reset the database to recover from a migration or
-storage error.
+Every schema change must increment the Dexie version and provide a migration
+that preserves existing user data. Never reset the database to recover from a
+migration or storage error.

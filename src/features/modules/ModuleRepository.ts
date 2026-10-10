@@ -29,11 +29,14 @@ export class ModuleRepository {
   async delete(id: string): Promise<void> {
     await this.database.transaction(
       "rw",
-      this.database.modules,
-      this.database.topics,
-      this.database.materials,
-      this.database.notes,
-      this.database.tasks,
+      [
+        this.database.modules,
+        this.database.topics,
+        this.database.materials,
+        this.database.notes,
+        this.database.tasks,
+        this.database.studySessions,
+      ],
       async () => {
         const existing = await this.database.modules.get(id);
         if (!existing) {
@@ -68,6 +71,13 @@ export class ModuleRepository {
             delete task.moduleId;
             delete task.topicId;
             task.updatedAt = new Date().toISOString();
+          });
+        await this.database.studySessions
+          .filter((session) => session.moduleId === id || Boolean(session.topicId && topicIds.has(session.topicId)))
+          .modify((session) => {
+            delete session.moduleId;
+            delete session.topicId;
+            session.updatedAt = new Date().toISOString();
           });
         await this.database.modules.delete(id);
       },

@@ -137,7 +137,26 @@ each milestone complete.
 - Verify a metadata search never reads the stored file-byte table.
 - Verify empty query, no matches, loading, and IndexedDB error states.
 - With an empty database, verify the dashboard reports no active modules,
-    recent materials, or upcoming tasks and displays zero completion counts.
+    recent materials, or upcoming commitments and displays zero completion counts.
 - Populate module/material/task records and verify active-module counts, recent
     material ordering, upcoming task exclusions, and completion summaries match
     actual persisted records (including no fabricated progress).
+
+## Phase 7 calendar and study-session checks
+
+- Upgrade a version 5 database and verify modules, topics, materials, notes,
+    tasks, and file bytes remain intact when the v6 session store is added.
+- Create, read, edit, complete, skip, and delete sessions; verify stable IDs,
+    timestamps, duration validation, and IndexedDB persistence after reopening.
+- Reject missing modules, invalid topic/module relationships, malformed local
+    date-times, and nonexistent spring-forward times without writing records.
+- Verify local date-time round trips, month/year grid boundaries, and the chosen
+    behavior for ambiguous fall-back times.
+- Verify Calendar month and agenda views include dated tasks and study sessions,
+    and module and item-type filters return only matching records.
+- Verify Calendar has no session-editing controls; selecting a session opens its
+    record in the separate Study planner area.
+- Verify Study planner creates, edits, completes, skips, and deletes sessions;
+    session material links open the material viewer and session changes persist.
+- Verify the dashboard includes only real future tasks and planned sessions,
+    with completion counts derived from persisted records.

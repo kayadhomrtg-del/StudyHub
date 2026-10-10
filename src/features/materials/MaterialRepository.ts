@@ -132,6 +132,7 @@ export class MaterialRepository {
       this.database.storedFiles,
       this.database.notes,
       this.database.tasks,
+      this.database.studySessions,
       async () => {
         if (!(await this.database.materials.get(id))) {
           throw new Error("This material no longer exists. Reload the page and try again.");
@@ -150,6 +151,10 @@ export class MaterialRepository {
             task.linkedMaterialIds = task.linkedMaterialIds.filter((materialId) => materialId !== id);
             task.updatedAt = new Date().toISOString();
           });
+        await this.database.studySessions.where("materialId").equals(id).modify((session) => {
+          delete session.materialId;
+          session.updatedAt = new Date().toISOString();
+        });
       },
     );
   }
