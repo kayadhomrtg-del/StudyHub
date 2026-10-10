@@ -19,3 +19,39 @@ also test migrations, reload behavior, and data preservation on failures.
 Import/viewer milestones must test that imported HTML and JavaScript are never
 executed. Run the relevant test suite and production build before considering
 each milestone complete.
+
+## Phase 1 module checks
+
+- Create a module and verify every entered field is persisted in IndexedDB.
+- Edit a module and verify its ID and creation timestamp remain stable while
+  its update timestamp changes.
+- Reject blank names/codes, invalid accent colors, oversized fields, and
+  case-insensitive duplicate module codes without writing a record.
+- Archive a module, verify it leaves the active filter, then restore it.
+- Delete a module only after explicit confirmation.
+- Search module names, codes, lecturer, semester, and academic year; filter by
+  semester and active/archived status.
+- Open a module detail by stable ID and verify the record survives a page
+  refresh.
+- Verify the modules page reports IndexedDB errors and offers retry without
+  clearing existing data.
+
+  ## Phase 2 topic and material checks
+
+  - Upgrade a version 1 database and verify existing module records remain
+    available under version 2.
+  - Create, rename, and reorder topics; verify ordering and persistence after
+    reopening the database.
+  - Import multiple files through both the picker and drag-and-drop, including two
+    files with the same filename, and verify distinct material IDs and original
+    bytes.
+  - Import with no module/topic, and with a valid module/topic; verify
+    relationships and unassigned material support.
+  - Assign, reassign, and unassign materials; reject a topic from another module.
+  - Verify tags are trimmed/deduplicated, and favorite and study status persist.
+  - Force an IndexedDB quota/write failure after the first store write and verify
+    the transaction leaves neither metadata nor file bytes.
+  - Verify each input file has an individual success/failure result and that one
+    failed file does not roll back other successfully imported files.
+  - Confirm import treats file content as bytes only; it never executes it or sends
+    it to a server.

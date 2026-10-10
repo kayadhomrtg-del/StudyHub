@@ -11,7 +11,11 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const { pathname } = useLocation();
   const { theme, toggleTheme } = useTheme();
   const currentPage =
-    navigationItems.find((item) => item.path === pathname) ?? navigationItems[0];
+    navigationItems.find(
+      (item) =>
+        item.path === pathname ||
+        (item.path !== "/" && pathname.startsWith(`${item.path}/`)),
+    ) ?? navigationItems[0];
 
   return (
     <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-line bg-surface/90 px-5 backdrop-blur-md sm:px-8 xl:px-12">

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -6,7 +6,7 @@ import { AppRoutes } from "./App";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
 import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
 import { ErrorState, LoadingState } from "./components/ui/StatePanel";
-import { workspacePages } from "./pages/workspacePages";
+import { navigationItems } from "./features/navigation/navigation";
 
 function renderApp(initialEntry = "/") {
   return render(
@@ -34,18 +34,21 @@ describe("application foundation", () => {
     const user = userEvent.setup();
     renderApp();
 
-    for (const page of workspacePages) {
-      const navigationLabel =
-        page.path === "/planner"
-          ? "Study planner"
-          : page.path.slice(1).replace(/^./, (letter) => letter.toUpperCase());
-
-      await user.click(screen.getByRole("link", { name: navigationLabel }));
+    for (const item of navigationItems) {
+      const navigation = within(
+        screen.getByRole("navigation", { name: "Workspace" }),
+      );
+      await user.click(navigation.getByRole("link", { name: item.label }));
+      if (item.path === "/") {
+        expect(
+          screen.getByRole("heading", { name: /Good .* scholar/i }),
+        ).toBeInTheDocument();
+      } else {
+        const pageTitle = item.path === "/modules" ? "Your modules" : item.label;
+        expect(screen.getByRole("heading", { name: pageTitle })).toBeInTheDocument();
+      }
       expect(
-        screen.getByRole("heading", { name: page.title }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("link", { name: navigationLabel }),
+        navigation.getByRole("link", { name: item.label }),
       ).toHaveAttribute("aria-current", "page");
     }
   });

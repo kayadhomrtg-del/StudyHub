@@ -1,8 +1,6 @@
 import {
-  BookOpen,
   CalendarDays,
   CheckSquare,
-  FileText,
   Search,
   Settings2,
   Sparkles,
@@ -21,26 +19,6 @@ export interface WorkspacePageInfo {
 }
 
 export const workspacePages: WorkspacePageInfo[] = [
-  {
-    path: "/modules",
-    title: "Your modules",
-    eyebrow: "YOUR COURSEWORK",
-    description: "Keep every course and its learning materials in one calm space.",
-    emptyTitle: "Your modules will live here",
-    emptyDescription:
-      "When you are ready for the next milestone, you will be able to organize courses and topics right here.",
-    icon: BookOpen,
-  },
-  {
-    path: "/materials",
-    title: "Materials",
-    eyebrow: "YOUR LIBRARY",
-    description: "A home for the readings, slides, and resources you study from.",
-    emptyTitle: "Your library is ready",
-    emptyDescription:
-      "Course materials will appear here once local organization is introduced in a later milestone.",
-    icon: FileText,
-  },
   {
     path: "/notes",
     title: "Notes",
