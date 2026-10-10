@@ -6,7 +6,8 @@
 - `src/App.tsx` defines the React Router routes and shared application shell,
   including the modules collection and module detail.
 - `src/components/layout/` contains the responsive sidebar and top bar.
-- `src/components/theme/` owns the in-memory light/dark appearance state.
+- `src/components/theme/` owns the light/dark appearance state and persists it
+  through the settings service.
 - `src/components/ui/` contains reusable loading, empty, error, and confirmation
   states.
 - `src/features/navigation/` owns the typed primary navigation definition.
@@ -87,6 +88,6 @@ assignment. Phase 3 adds local PDF/image/Office/Markdown/code previews,
 download, document search, topic navigation, and last-opened tracking. Phase 4
 adds local Markdown notes, Phase 5 local task management, Phase 6 cross-library
 search/dashboard, and Phase 7 calendar and study sessions. Phase 8 adds
-versioned v2 full backups and production app-shell caching; it adds persistent
-appearance settings in schema version 7. Future schema changes must increment
+versioned v2 full backups and production app-shell caching; appearance settings
+are stored in schema version 7. Future schema changes must increment
 the Dexie version and preserve existing user data.

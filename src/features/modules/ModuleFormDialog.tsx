@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
+import { useModalFocus } from "../../components/ui/useModalFocus";
 import {
   ModuleService,
   ModuleValidationError,
@@ -93,6 +94,12 @@ export function ModuleFormDialog({
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const isEditing = Boolean(module);
+  const titleId = useId();
+  const { dialogRef, onKeyDown } = useModalFocus(
+    true,
+    onClose,
+    () => document.getElementById("name"),
+  );
 
   function updateField(field: ModuleField, value: string) {
     setInput((current) => ({ ...current, [field]: value }));
@@ -131,10 +138,14 @@ export function ModuleFormDialog({
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-ink/40 p-4 backdrop-blur-sm">
       <section
-        aria-labelledby="module-form-title"
+        aria-describedby={`${titleId}-description`}
+        aria-labelledby={titleId}
         aria-modal="true"
         className="my-auto w-full max-w-2xl rounded-[22px] border border-line bg-surface shadow-xl"
+        onKeyDown={onKeyDown}
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
         <div className="flex items-start justify-between border-b border-line px-5 py-4 sm:px-7">
           <div>
@@ -143,11 +154,11 @@ export function ModuleFormDialog({
             </p>
             <h2
               className="mt-1 text-[18px] font-semibold tracking-[-0.03em] text-ink"
-              id="module-form-title"
+              id={titleId}
             >
               {isEditing ? "Edit module" : "Add a module"}
             </h2>
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-[11px] text-muted" id={`${titleId}-description`}>
               Your module details are saved only on this device.
             </p>
           </div>

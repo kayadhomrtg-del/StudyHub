@@ -129,4 +129,41 @@ describe("reusable interface states", () => {
     expect(onCancel).toHaveBeenCalledOnce();
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it("focuses the dialog, traps keyboard focus, and cancels on Escape", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    const trigger = document.createElement("button");
+    trigger.textContent = "Open confirmation";
+    document.body.append(trigger);
+    trigger.focus();
+
+    const { unmount } = render(
+      <ConfirmationDialog
+        description="This action cannot be undone."
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+        open
+        title="Confirm action"
+      />,
+    );
+
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    const confirm = screen.getByRole("button", { name: "Confirm" });
+    expect(cancel).toHaveFocus();
+    expect(screen.getByRole("alertdialog")).toHaveAccessibleDescription("This action cannot be undone.");
+
+    await user.tab({ shift: true });
+    expect(confirm).toHaveFocus();
+    await user.tab();
+    expect(cancel).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    unmount();
+    expect(trigger).toHaveFocus();
+    trigger.remove();
+  });
 });

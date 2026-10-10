@@ -1,14 +1,15 @@
 # Data model
 
-## Current schema: version 6
+## Current schema: version 7
 
-`src/features/modules/moduleDatabase.ts` declares Dexie database version 6.
+`src/features/modules/moduleDatabase.ts` declares Dexie database version 7.
 The v2 migration adds topic, material metadata, and stored-file stores while
 preserving existing modules. Version 3 adds an index for material last-opened
 timestamps without rewriting or deleting existing material or file records.
 Version 4 adds the notes store without changing existing records.
 Version 5 adds the tasks store without changing existing records.
 Version 6 adds the study-sessions store without rewriting existing records.
+Version 7 adds the app-settings store without rewriting existing records.
 Module IDs are UUID strings. Records contain:
 
 - `id`, `name`, `code`
@@ -89,6 +90,12 @@ retaining the session record. The separate Study planner area owns session
 creation and management. Calendar displays these session records alongside task
 deadlines and opens a selected session in Study planner.
 
+### Application setting
+
+The `appSettings` store currently contains the locally persisted appearance
+preference (`appearance`: `light` or `dark`). Settings are included in full
+backup archives and are not transmitted off-device.
+
 ### Local search and dashboard queries
 
 Global search runs against module, topic, material metadata, note, and task
@@ -149,9 +156,9 @@ record counts, file metadata, sizes, and CRCs before a single write begins.
 Merge rejects existing IDs and case-insensitive module-code conflicts without
 writing; an identical appearance preference is preserved, while a differing
 preference is reported as a conflict. Replace is explicit and writes/clears all
-eight stores in one Dexie transaction; transaction failures roll back. Backup version 1 archives are
-migrated on read, with records absent from that older format represented as
-empty collections. Module-scoped archives remain version 1, contain their
+eight stores in one Dexie transaction; transaction failures roll back. Backup
+version 1 archives are migrated on read, with records absent from that older
+format represented as empty collections. Module-scoped archives remain version 1, contain their
 module/topics/materials and original bytes, and may only be merged. Backup
 archives are limited to 512 MiB, 10,002 entries, and a bounded expanded size
 before decompression.
@@ -162,7 +169,7 @@ Course data remains in this browser's IndexedDB. Settings displays browser
 storage usage/quota estimates where supported and allows a user-triggered
 persistent-storage request. A grant depends on browser policy and does not
 protect against disk/profile failure or deliberate storage clearing. Keep
-Keep downloaded backups outside the browser. The production service worker caches
+downloaded backups outside the browser. The production service worker caches
 only the app shell, manifest/icon, and same-origin Vite build assets; it does
 not cache IndexedDB records, material responses, or external requests.
 Manual production-preview browser verification with network access disabled

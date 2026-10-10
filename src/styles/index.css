@@ -69,7 +69,11 @@ a {
 }
 
 button:focus-visible,
-a:focus-visible {
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
   outline: 3px solid rgb(var(--palette-brand) / 45%);
   outline-offset: 3px;
 }

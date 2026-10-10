@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { useModalFocus } from "../../components/ui/useModalFocus";
 import type { ModuleRecord } from "../modules/module";
 import type { TopicRecord } from "../topics/topic";
 import { topicService } from "../topics/TopicService";
@@ -24,6 +25,12 @@ export function MaterialOrganizationDialog({
   const [topics, setTopics] = useState<TopicRecord[]>([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const titleId = useId();
+  const { dialogRef, onKeyDown } = useModalFocus(
+    true,
+    onClose,
+    () => document.getElementById("organize-module"),
+  );
 
   useEffect(() => {
     let active = true;
@@ -85,12 +92,15 @@ export function MaterialOrganizationDialog({
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-ink/40 p-4 backdrop-blur-sm">
       <section
-        aria-labelledby="organize-material-title"
+        aria-labelledby={titleId}
         aria-modal="true"
         className="my-auto w-full max-w-lg rounded-[22px] border border-line bg-surface p-5 shadow-xl sm:p-7"
+        onKeyDown={onKeyDown}
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
-        <h2 className="text-[16px] font-semibold text-ink" id="organize-material-title">
+        <h2 className="text-[16px] font-semibold text-ink" id={titleId}>
           Organize material
         </h2>
         <p className="mt-1 truncate text-[11px] text-muted">{material.originalFileName}</p>
