@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-canvas: rgb(var(--palette-canvas));
+  --color-surface: rgb(var(--palette-surface));
+  --color-subtle: rgb(var(--palette-subtle));
+  --color-ink: rgb(var(--palette-ink));
+  --color-muted: rgb(var(--palette-muted));
+  --color-line: rgb(var(--palette-line));
+  --color-brand: rgb(var(--palette-brand));
+  --color-brand-strong: rgb(var(--palette-brand-strong));
+  --color-brand-soft: rgb(var(--palette-brand-soft));
+  --color-gold: rgb(var(--palette-gold));
+}
+
+:root {
+  color-scheme: light;
+  --palette-canvas: 247 248 246;
+  --palette-surface: 255 255 255;
+  --palette-subtle: 241 243 240;
+  --palette-ink: 33 43 37;
+  --palette-muted: 117 128 120;
+  --palette-line: 231 234 230;
+  --palette-brand: 57 111 78;
+  --palette-brand-strong: 42 91 61;
+  --palette-brand-soft: 234 242 235;
+  --palette-gold: 190 151 79;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --palette-canvas: 21 27 24;
+  --palette-surface: 28 36 32;
+  --palette-subtle: 37 47 41;
+  --palette-ink: 232 237 232;
+  --palette-muted: 157 171 161;
+  --palette-line: 48 59 52;
+  --palette-brand: 118 177 134;
+  --palette-brand-strong: 145 199 157;
+  --palette-brand-soft: 37 58 44;
+  --palette-gold: 218 181 109;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: rgb(var(--palette-canvas));
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgb(var(--palette-brand) / 45%);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: rgb(var(--palette-brand-strong));
+  background: rgb(var(--palette-brand) / 18%);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
