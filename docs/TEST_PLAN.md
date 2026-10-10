@@ -55,3 +55,22 @@ each milestone complete.
     failed file does not roll back other successfully imported files.
   - Confirm import treats file content as bytes only; it never executes it or sends
     it to a server.
+
+## Phase 3 local viewer checks
+
+- Upgrade a version 2 database to version 3 and verify existing module, material,
+    and file-byte records remain available.
+- Open a material and verify metadata and original bytes load independently and
+    `lastOpenedAt` is persisted without changing `updatedAt`.
+- Verify PDF loading, page navigation, zoom, fit-width, and a clear error for
+    malformed PDF bytes.
+- Verify common raster image formats show a preview and damaged images report
+    an error with an original download option.
+- Verify TXT, Markdown, code, JSON, CSS, and HTML are displayed as plain text;
+    imported HTML never creates live elements.
+- Verify unsupported formats report filename, MIME type, and size and allow the
+    original file to be downloaded. DOCX/PPTX/XLSX preview is not supported.
+- Navigate between materials assigned to the same topic and verify changing
+    files releases the prior viewer resources and records the new open timestamp.
+- Verify object URLs and PDF render/document resources are cleaned up on switch
+    and unmount.

@@ -27,6 +27,13 @@ export class ModuleDatabase extends Dexie {
           module.isArchived ??= false;
         });
       });
+    this.version(3).stores({
+      modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
+      topics: "id, moduleId, sortOrder, updatedAt",
+      materials:
+        "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt, lastOpenedAt",
+      storedFiles: "id",
+    });
   }
 }
 

@@ -2,9 +2,11 @@ import { useState } from "react";
 import {
   FileText,
   Heart,
+  Eye,
   Trash2,
   Tags,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { studyStatusLabels, studyStatuses, type StudyStatus } from "../studyStatus";
 import type { ModuleRecord } from "../modules/module";
@@ -145,6 +147,14 @@ export function MaterialCard({
             </select>
           </label>
           <div className="flex items-center gap-1">
+            <Link
+              aria-label={`Open ${material.title}`}
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-brand hover:bg-brand-soft"
+              to={`/materials/${material.id}`}
+            >
+              <Eye aria-hidden="true" size={13} />
+              Open
+            </Link>
             <button
               className="rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-brand hover:bg-brand-soft"
               onClick={() => setOrganizing(true)}

@@ -1,10 +1,12 @@
 # Data model
 
-## Current schema: version 2
+## Current schema: version 3
 
-`src/features/modules/moduleDatabase.ts` declares Dexie database version 2.
+`src/features/modules/moduleDatabase.ts` declares Dexie database version 3.
 The v2 migration adds topic, material metadata, and stored-file stores while
-preserving existing modules. Module IDs are UUID strings. Records contain:
+preserving existing modules. Version 3 adds an index for material last-opened
+timestamps without rewriting or deleting existing material or file records.
+Module IDs are UUID strings. Records contain:
 
 - `id`, `name`, `code`
 - optional `semester`, `academicYear`, `lecturer`, `description`, and `color`
@@ -28,7 +30,7 @@ Material metadata is stored separately from original bytes:
 - ID, display title, original filename, MIME type, optional extension, size
 - optional module and topic IDs (both may be unassigned)
 - string tags, study status (`not-started`, `in-progress`, `completed`),
-  favorite flag, and ISO creation/update timestamps
+  favorite flag, ISO creation/update timestamps, and optional ISO `lastOpenedAt`
 
 IDs—not filenames—identify material records, so multiple files with the same
 name remain distinct. Materials can exist without a module or topic.
@@ -58,6 +60,12 @@ its materials. Deleting a module removes its topics and clears module/topic
 assignments from its materials, while retaining their metadata and file bytes.
 Deleting a material explicitly removes both its metadata and corresponding
 stored bytes in a single transaction.
+
+The viewer loads metadata and file bytes through the material service. Opening
+a material updates `lastOpenedAt` without changing its content `updatedAt`.
+PDF, browser-supported raster image, and plain-text files are previewed locally.
+HTML and code are inserted as text nodes, never HTML markup. Other formats are
+downloadable in their original form and are not advertised as previews.
 
 ## Future schema changes
 

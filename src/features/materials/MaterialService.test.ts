@@ -170,6 +170,16 @@ describe("MaterialService", () => {
     });
   });
 
+  it("records last-opened time without changing the material update timestamp", async () => {
+    const imported = await service.importFiles([file("opened.txt")]);
+    if (imported[0].status !== "success") throw new Error("Import should succeed.");
+    const updated = await service.markOpened(imported[0].material.id);
+
+    expect(updated.lastOpenedAt).toBe("2026-02-01T12:00:00.000Z");
+    expect(updated.updatedAt).toBe(imported[0].material.updatedAt);
+    expect(await service.getById(updated.id)).toEqual(updated);
+  });
+
   it("removes material metadata and bytes together when explicitly deleted", async () => {
     const imported = await service.importFiles([file("remove.txt")]);
     if (imported[0].status !== "success") throw new Error("Import should succeed.");

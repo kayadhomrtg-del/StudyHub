@@ -27,6 +27,10 @@ export class MaterialService {
     return this.repository.getFile(id);
   }
 
+  markOpened(id: string): Promise<MaterialRecord> {
+    return this.repository.markOpened(id, this.now());
+  }
+
   async importFiles(
     files: File[],
     options: { assignment?: MaterialAssignment; tags?: string[] } = {},

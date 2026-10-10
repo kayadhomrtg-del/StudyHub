@@ -58,6 +58,18 @@ export class MaterialRepository {
     return material;
   }
 
+  async markOpened(id: string, lastOpenedAt: string): Promise<MaterialRecord> {
+    const updatedCount = await this.database.materials.update(id, { lastOpenedAt });
+    if (!updatedCount) {
+      throw new Error("This material no longer exists. Reload the page and try again.");
+    }
+    const material = await this.database.materials.get(id);
+    if (!material) {
+      throw new Error("This material no longer exists. Reload the page and try again.");
+    }
+    return material;
+  }
+
   async updateAssignment(
     id: string,
     assignment: MaterialAssignment,

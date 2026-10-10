@@ -14,6 +14,7 @@ export interface MaterialRecord {
   isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
+  lastOpenedAt?: string;
 }
 
 export interface StoredFileRecord {

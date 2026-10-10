@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 import { moduleDatabase } from "../features/modules/moduleDatabase";
 import { MaterialsPage } from "./MaterialsPage";
@@ -32,7 +33,11 @@ beforeEach(async () => {
 describe("MaterialsPage", () => {
   it("shows imported materials and persists assignment, tags, favorite, and status", async () => {
     const user = userEvent.setup();
-    const { container } = render(<MaterialsPage />);
+    const { container } = render(
+      <MemoryRouter>
+        <MaterialsPage />
+      </MemoryRouter>,
+    );
 
     const moduleSelect = await screen.findByLabelText("Module (optional)");
     await screen.findByRole("option", { name: "Environmental Science (ENV-201)" });

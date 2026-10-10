@@ -88,7 +88,7 @@ describe("ModuleService", () => {
     await reopenedDatabase.open();
     try {
       expect(await reopenedDatabase.modules.get(created.id)).toEqual(created);
-      expect(reopenedDatabase.verno).toBe(2);
+      expect(reopenedDatabase.verno).toBe(3);
     } finally {
       reopenedDatabase.close();
       await reopenedDatabase.delete();
@@ -165,10 +165,64 @@ describe("ModuleService", () => {
     const upgradedDatabase = new ModuleDatabase(databaseName);
     await upgradedDatabase.open();
     try {
-      expect(upgradedDatabase.verno).toBe(2);
+      expect(upgradedDatabase.verno).toBe(3);
       expect(await upgradedDatabase.modules.get(legacyModule.id)).toEqual(legacyModule);
       expect(await upgradedDatabase.topics.count()).toBe(0);
       expect(await upgradedDatabase.materials.count()).toBe(0);
+    } finally {
+      upgradedDatabase.close();
+      await upgradedDatabase.delete();
+    }
+  });
+
+  it("upgrades version 2 without deleting existing materials or original bytes", async () => {
+    const legacyDatabase = new Dexie(`legacy-material-db-${crypto.randomUUID()}`);
+    legacyDatabase.version(2).stores({
+      modules: "id, &code, name, semester, academicYear, isArchived, updatedAt",
+      topics: "id, moduleId, sortOrder, updatedAt",
+      materials:
+        "id, title, originalFileName, moduleId, topicId, *tags, status, isFavorite, createdAt, updatedAt",
+      storedFiles: "id",
+    });
+    await legacyDatabase.open();
+    const module = {
+      id: "old-module",
+      name: "Legacy module",
+      code: "OLD-101",
+      isArchived: false,
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    };
+    const material = {
+      id: "old-material",
+      title: "Saved notes",
+      originalFileName: "saved.txt",
+      mimeType: "text/plain",
+      extension: "txt",
+      sizeBytes: 6,
+      tags: [],
+      status: "not-started",
+      isFavorite: false,
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    };
+    const bytes = new ArrayBuffer(6);
+    new Uint8Array(bytes).set(new TextEncoder().encode("stored"));
+    await legacyDatabase.table("modules").add(module);
+    await legacyDatabase.table("materials").add(material);
+    await legacyDatabase.table("storedFiles").add({ id: material.id, bytes });
+    const databaseName = legacyDatabase.name;
+    legacyDatabase.close();
+
+    const upgradedDatabase = new ModuleDatabase(databaseName);
+    await upgradedDatabase.open();
+    try {
+      expect(upgradedDatabase.verno).toBe(3);
+      expect(await upgradedDatabase.modules.get(module.id)).toEqual(module);
+      expect(await upgradedDatabase.materials.get(material.id)).toEqual(material);
+      expect(
+        new TextDecoder().decode((await upgradedDatabase.storedFiles.get(material.id))?.bytes),
+      ).toBe("stored");
     } finally {
       upgradedDatabase.close();
       await upgradedDatabase.delete();
