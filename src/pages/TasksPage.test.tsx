@@ -47,6 +47,30 @@ describe("TasksPage", () => {
     expect(screen.getByRole("heading", { name: "Review lecture notes" })).toBeInTheDocument();
   });
 
+  it("wraps long unbroken description text instead of overflowing the card", async () => {
+    const timestamp = new Date().toISOString();
+    await moduleDatabase.tasks.add({
+      id: "overflow-task",
+      title: "Long URL task",
+      description:
+        "https://example.edu/study-materials/lecture-notes/very-long-unbroken-url-without-spaces",
+      priority: "medium",
+      status: "not-started",
+      type: "assignment",
+      linkedMaterialIds: [],
+      tags: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    renderTasks();
+    const description = await screen.findByText(
+      /https:\/\/example\.edu\/study-materials/,
+    );
+    expect(description).toBeInTheDocument();
+    expect(description).toHaveClass("break-words");
+  });
+
   it("requires confirmation before deleting a task", async () => {
     const user = userEvent.setup();
     renderTasks();

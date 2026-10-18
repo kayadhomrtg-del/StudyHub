@@ -23,6 +23,10 @@ export class MaterialService {
     return this.repository.getById(id);
   }
 
+  getMaterialsByTopic(topicId: string): Promise<MaterialRecord[]> {
+    return this.repository.getByTopic(topicId);
+  }
+
   getFile(id: string) {
     return this.repository.getFile(id);
   }

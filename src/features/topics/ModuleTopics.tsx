@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ArrowDown, ArrowUp, Check, Pencil, Plus, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ErrorState, LoadingState } from "../../components/ui/StatePanel";
 import type { TopicRecord } from "./topic";
 import { topicService } from "./TopicService";
@@ -205,7 +206,13 @@ export function ModuleTopics({ moduleId, refreshKey = 0 }: ModuleTopicsProps) {
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12px] font-medium text-ink">{topic.title}</span>
+                    <Link
+                      to={`/modules/${moduleId}/topics/${topic.id}/materials`}
+                      className="block truncate text-[12px] font-medium text-ink hover:text-brand"
+                      title={topic.title}
+                    >
+                      {topic.title}
+                    </Link>
                     {topic.description && <span className="mt-0.5 block truncate text-[10px] text-muted">{topic.description}</span>}
                   </span>
                   <button

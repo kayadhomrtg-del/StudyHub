@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { moduleDatabase } from "../modules/moduleDatabase";
 import { ModuleTopics } from "./ModuleTopics";
 
@@ -24,7 +25,11 @@ beforeEach(async () => {
 describe("ModuleTopics", () => {
   it("adds, renames, reorders, and persists topics", async () => {
     const user = userEvent.setup();
-    const { unmount } = render(<ModuleTopics moduleId="module-topics-ui" />);
+    const { unmount } = render(
+      <MemoryRouter>
+        <ModuleTopics moduleId="module-topics-ui" />
+      </MemoryRouter>,
+    );
 
     const titleInput = await screen.findByRole("textbox", { name: "New topic name" });
     await user.type(titleInput, "Week one");
@@ -59,7 +64,11 @@ describe("ModuleTopics", () => {
     await screen.findByText("Foundations");
 
     unmount();
-    render(<ModuleTopics moduleId="module-topics-ui" />);
+    render(
+      <MemoryRouter>
+        <ModuleTopics moduleId="module-topics-ui" />
+      </MemoryRouter>,
+    );
     const persistedItems = await screen.findAllByRole("listitem");
     expect(persistedItems[0]).toHaveTextContent("Week two");
     expect(persistedItems[1]).toHaveTextContent("Foundations");

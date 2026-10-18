@@ -281,8 +281,12 @@ export function TasksPage() {
                       <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[9px] font-medium text-brand">{typeLabels[task.type]}</span>
                       <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${task.priority === "high" ? "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200" : task.priority === "medium" ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200" : "bg-subtle text-muted"}`}>{task.priority} priority</span>
                     </div>
-                    {task.description && <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5 text-muted">{task.description}</p>}
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted">
+                    {task.description && (
+                      <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-5 text-muted">
+                        {task.description}
+                      </p>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted break-words">
                       <span className="capitalize">{statusLabels[task.status]}</span>
                       {task.moduleId && <span>{modules.find((module) => module.id === task.moduleId)?.name ?? "Unlinked module"}{task.topicId ? ` · ${topics.find((topic) => topic.id === task.topicId)?.title ?? "Unlinked topic"}` : ""}</span>}
                       {task.dueAt && <span className={`inline-flex items-center gap-1 ${dateState === "overdue" ? "font-semibold text-red-700 dark:text-red-300" : dateState === "upcoming" ? "text-brand" : ""}`}><CalendarClock aria-hidden="true" size={12} />{dateState === "overdue" ? "Overdue · " : dateState === "upcoming" ? "Upcoming · " : ""}{formatDue(task.dueAt)}</span>}

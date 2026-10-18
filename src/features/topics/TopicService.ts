@@ -13,6 +13,10 @@ export class TopicService {
     return this.repository.getByModule(moduleId);
   }
 
+  async getById(id: string): Promise<TopicRecord | undefined> {
+    return this.repository.getById(id);
+  }
+
   async create(moduleId: string, input: TopicInput): Promise<TopicRecord> {
     const title = input.title.trim();
     if (!title) throw new Error("Enter a topic name.");

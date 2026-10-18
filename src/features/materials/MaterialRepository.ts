@@ -16,6 +16,10 @@ export class MaterialRepository {
     return this.database.materials.get(id);
   }
 
+  getByTopic(topicId: string): Promise<MaterialRecord[]> {
+    return this.database.materials.where("topicId").equals(topicId).sortBy("createdAt");
+  }
+
   getFile(id: string): Promise<StoredFileRecord | undefined> {
     return this.database.storedFiles.get(id);
   }

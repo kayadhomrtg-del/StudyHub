@@ -54,6 +54,53 @@ describe("StudyPlannerPage", () => {
     expect(screen.getByRole("link", { name: /Open calendar/ })).toHaveAttribute("href", "/calendar");
   });
 
+  it("hides the Skip button for completed sessions", async () => {
+    const timestamp = new Date().toISOString();
+    await moduleDatabase.studySessions.add({
+      id: "completed-session",
+      moduleId: "planner-module",
+      title: "Completed session",
+      plannedStart: timestamp,
+      plannedDurationMinutes: 60,
+      status: "completed",
+      actualDurationMinutes: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    await moduleDatabase.studySessions.add({
+      id: "planned-session",
+      moduleId: "planner-module",
+      title: "Planned session",
+      plannedStart: timestamp,
+      plannedDurationMinutes: 60,
+      status: "planned",
+      actualDurationMinutes: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    render(<MemoryRouter><StudyPlannerPage /></MemoryRouter>);
+    await screen.findByRole("heading", { name: "Study sessions" });
+
+    const completedItem = screen.getByText("Completed session").closest("li");
+    expect(completedItem).not.toBeNull();
+    expect(
+      within(completedItem as HTMLElement).queryByRole("button", {
+        name: "Skip",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(completedItem as HTMLElement).queryByRole("button", {
+        name: "Complete",
+      }),
+    ).not.toBeInTheDocument();
+
+    const plannedItem = screen.getByText("Planned session").closest("li");
+    expect(
+      within(plannedItem as HTMLElement).getByRole("button", { name: "Skip" }),
+    ).toBeInTheDocument();
+  });
+
   it("opens the requested session for editing and persists changes and status", async () => {
     const start = new Date();
     start.setDate(start.getDate() + 2);

@@ -167,7 +167,15 @@ export function StudyPlannerPage() {
                   </button>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     {session.status !== "completed" && <button className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-medium text-brand hover:bg-brand-soft" onClick={() => void setStatus(session, "completed")} type="button"><Check aria-hidden="true" size={12} />Complete</button>}
-                    {session.status !== "skipped" && <button className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-medium text-muted hover:bg-subtle" onClick={() => void setStatus(session, "skipped")} type="button"><SkipForward aria-hidden="true" size={12} />Skip</button>}
+                    {session.status !== "completed" && session.status !== "skipped" && (
+                      <button
+                        className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-medium text-muted hover:bg-subtle"
+                        onClick={() => void setStatus(session, "skipped")}
+                        type="button"
+                      >
+                        <SkipForward aria-hidden="true" size={12} />Skip
+                      </button>
+                    )}
                     <button aria-label={`Delete ${session.title}`} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30" onClick={() => setDeleteTarget(session)} type="button"><Trash2 aria-hidden="true" size={14} /></button>
                   </div>
                 </div>

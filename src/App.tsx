@@ -19,6 +19,9 @@ const MaterialsPage = lazy(() =>
 const MaterialViewerPage = lazy(() =>
   import("./pages/MaterialViewerPage").then((module) => ({ default: module.MaterialViewerPage })),
 );
+const TopicMaterialsPage = lazy(() =>
+  import("./pages/TopicMaterialsPage").then((module) => ({ default: module.TopicMaterialsPage })),
+);
 const AsyncSettingsPage = lazy(() =>
   import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })),
 );
@@ -50,6 +53,10 @@ export function AppRoutes() {
         <Route path="modules" element={<Suspense fallback={<RouteLoading label="Loading modules" />}><ModulesPage /></Suspense>} />
         <Route path="modules/:moduleId" element={<Suspense fallback={<RouteLoading label="Loading module" />}><ModuleDetailPage /></Suspense>} />
         <Route path="materials/:materialId" element={<Suspense fallback={<RouteLoading label="Loading material" />}><MaterialViewerPage /></Suspense>} />
+        <Route
+          path="modules/:moduleId/topics/:topicId/materials"
+          element={<Suspense fallback={<RouteLoading label="Loading topic materials" />}><TopicMaterialsPage /></Suspense>}
+        />
         <Route path="materials" element={<Suspense fallback={<RouteLoading label="Loading materials" />}><MaterialsPage /></Suspense>} />
         <Route path="notes/:noteId?" element={<Suspense fallback={<RouteLoading label="Loading notes" />}><AsyncNotesPage /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<RouteLoading label="Loading tasks" />}><AsyncTasksPage /></Suspense>} />
