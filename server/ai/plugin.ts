@@ -46,6 +46,16 @@ function boundPort(
   return address.port;
 }
 
+function boundAddress(
+  httpServer: { address(): { address: string } | string | null } | null | undefined,
+): string | null {
+  const address = httpServer?.address();
+  if (!address || typeof address === "string") {
+    return null;
+  }
+  return address.address;
+}
+
 /**
  * Options for the AI proxy plugin.
  *
@@ -54,6 +64,7 @@ function boundPort(
  */
 export interface AiProxyPluginOptions {
   logStream?: { write(chunk: string): unknown };
+  env?: NodeJS.ProcessEnv;
 }
 
 /**
@@ -64,6 +75,7 @@ export function studyHubAiProxyPlugin(
 ): Plugin {
   const handlerOptions = {
     ...(options.logStream ? { logStream: options.logStream } : {}),
+    ...(options.env ? { env: options.env } : {}),
   };
 
   return {
@@ -74,6 +86,7 @@ export function studyHubAiProxyPlugin(
         createAiHandler({
           root: server.config.root,
           serverPort: () => boundPort(server.httpServer),
+          serverAddress: () => boundAddress(server.httpServer),
           ...handlerOptions,
         }),
       );
@@ -85,6 +98,7 @@ export function studyHubAiProxyPlugin(
         createAiHandler({
           root: server.config.root,
           serverPort: () => boundPort(server.httpServer),
+          serverAddress: () => boundAddress(server.httpServer),
           ...handlerOptions,
         }),
       );

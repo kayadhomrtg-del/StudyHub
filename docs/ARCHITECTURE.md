@@ -95,18 +95,29 @@ light and dark appearances. Fonts and assets use local system resources; there
 are no runtime CDN dependencies. Core workflows do not send user content to a
 remote service and do not require an account or backend. The optional AI
 prepare request transfers selected extracted text only to the same-machine
-loopback proxy; provider dispatch remains impossible in the current code.
+loopback proxy. Real Gemini dispatch is optional and available only after
+server-side key configuration, successful model checks, all local gates, and
+fresh approval of the exact payload.
 
 One narrow, optional exception to the no-network posture is documented in
 `docs/AI_PLAN.md`: a disabled-by-default Gemini proxy served from the same
 loopback origin. Its boundary is deliberately small:
 
-- It listens on `127.0.0.1` only and is reachable only from the same origin.
+- Vite defaults to `127.0.0.1`; AI requests additionally require an actual
+  loopback listener and loopback socket peer, so overriding Vite's host cannot
+  expose the AI middleware to network clients. Host and Origin are also
+  validated.
 - It introduces no account, no telemetry, no hosted component, and no new
   persistence mechanism.
 - It dispatches upstream only after a fresh, explicit approval of the exact
   payload, and only when every launch gate in `docs/AI_LAUNCH_CHECKLIST.md`
-  passes. Real dispatch stays blocked while provider eligibility is unresolved.
+  passes. The owner reports Google's confirmation for the intended
+  single-user coursework use; no written response was available in the
+  project files. This is a limited owner report, not independent or broader
+  Google approval. The official terms remain documented without alteration.
+- The API key is stored server-side only using Windows DPAPI. The browser does
+  not store the key or call Google directly. Configuration routes are
+  loopback-peer, listener, Host, and Origin checked.
 - It never writes AI prompts, outputs, or history to IndexedDB, and it never
   includes the optional personal notes in a dispatched payload.
 
@@ -115,20 +126,21 @@ review, and free-tier product-improvement use — sits outside the application's
 storage boundary and is disclosed separately from local storage. "No AI
 persistence" refers only to StudyHub's own database and application storage.
 
-The Phase 1 proxy skeleton lives in `server/ai/` and runs only in the Vite
-server process; it has no browser code and no Dexie access. It contains no
-HTTP client, reads no API key, and knows no provider endpoint, so it cannot
-dispatch at all. Its local state is two plain files under the git-ignored
-`.study-hub/` directory: the launch artifact and the usage counter.
+The proxy lives in `server/ai/` and runs only in the Vite server process; it
+has no browser code and no Dexie access. The Gemini provider reads its key
+from the DPAPI-protected file, makes one request with no redirect or retry,
+and does not log the key or provider response body. The encrypted key, launch
+artifact, activation state, and usage counter live under the git-ignored
+`.study-hub/` directory.
 
 The optional AI UI lives in `src/features/ai/` with material-scoped route
 wrappers in `src/pages/MaterialSummaryPage.tsx`,
 `src/pages/MaterialQuizPage.tsx`, and `src/pages/MaterialQaPage.tsx`. Each
 loads already-imported material bytes and extracts text locally. Summary,
 quiz, and Q&A use the same loopback prepare/review/approve/send pipeline; quiz
-answer checking is local, and Q&A is single-turn with inert provider-reported
-references. These surfaces add no database store, backup record, account,
-telemetry, provider endpoint, or real provider dispatch.
+answer checking is local, and Q&A is single-turn with inert, unverified
+provider-reported references. No database store or backup record is added.
+Guided recall remains fully local.
 
 ## Boundaries
 
@@ -144,7 +156,9 @@ the Dexie version and preserve existing user data.
 
 Optional AI assistance is a separate, gated boundary from the local features
 above and is phased in `docs/AI_PLAN.md`. The local proxy and summary UI are
-implemented, including quiz and Q&A. Real-provider authorization is still
-blocked and out of scope. The optional AI feature must not change the Dexie
-schema version, the backup formats, or the local-only behaviour of any existing
-feature.
+implemented, including quiz and Q&A. Phase 5 connects them to Gemini through
+the shared pipeline. The owner reports Google's confirmation for the intended
+personal coursework use; the written response is unavailable to this
+repository, and no broader approval is claimed. The optional AI feature must
+not change the Dexie schema version, the backup formats, or the local-only
+behaviour of any existing feature.

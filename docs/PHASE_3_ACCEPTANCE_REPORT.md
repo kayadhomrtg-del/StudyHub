@@ -5,9 +5,16 @@
 pass; formal owner acceptance of the final diff remains pending as required by
 [`PHASE_3_PLAN.md`](PHASE_3_PLAN.md). No Phase 3 application defect was found.
 
-This is a source, test, and documentation audit of the actual working tree. It
-does not establish real-provider behaviour. Real provider dispatch is
-structurally unavailable and remains blocked.
+This is a source, test, and documentation audit of the actual working tree at
+the time of Phase 3. It does not establish real-provider behaviour. Provider
+dispatch was structurally unavailable then; Phase 5 later added the provider
+path and local configuration.
+
+**Owner-reported Google clarification (2026-11-02):** the owner reports that
+Google confirmed the intended personal coursework use. No written response was
+available in the project files. This is recorded narrowly and does not claim
+broader approval or quote unseen correspondence. The Phase 3 findings below
+describe the implementation and gate state at the audit date.
 
 ## 1. Worktree and evidence boundaries
 

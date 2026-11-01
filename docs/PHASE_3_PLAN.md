@@ -5,6 +5,13 @@ verification are complete. Owner acceptance of the final diff remains pending.
 Phase 3 has not changed the production AI server, provider eligibility,
 dispatch, database schema, backup formats, or dependencies.
 
+**Owner-reported Google clarification (2026-11-02):** the owner reports that
+Google confirmed the intended personal coursework use. No written response
+was available in the project files. Record this narrowly; do not claim broader
+approval or quote unseen correspondence. This historical Phase 3 plan does not
+authorize provider changes; the current AI plan and explicit owner
+authorization govern later work.
+
 **Scope:** one person, one browser profile, one machine, personal study use.
 
 **Source of truth:** [`docs/AI_PLAN.md`](AI_PLAN.md) wins for AI behaviour. This
@@ -165,7 +172,9 @@ it as an incidental part of a UI step.
   activation path remain absent.
 - Quiz/Q&A state is memory-only; there is no saved attempt, score, answer,
   reference, or conversation history.
-- Provider eligibility remains unresolved and continues to block dispatch.
+- At Phase 3 completion, the provider terms classification was unresolved and
+  dispatch remained blocked. The owner's 2026-11-02 clarification corrected
+  the former categorical claim; see `AI_PLAN.md` §3 for current status.
 
 ---
 
@@ -191,9 +200,11 @@ records:
 9. No AI prompt, output, history, quiz attempt, score, or Q&A transcript is
    written to IndexedDB, a backup, or any StudyHub application storage.
 10. The local fallback makes zero `fetch` calls.
-11. Real provider dispatch stays impossible and blocked. Provider eligibility is
-    unresolved, the mounted provider is permanently unconfigured, and the
-    activation reader is permanently disabled.
+11. At Phase 3 completion, real provider dispatch was structurally impossible
+    and blocked: the terms classification was unresolved, the mounted provider
+    was unconfigured, and the activation reader was disabled. The owner
+    clarification dated 2026-11-02 corrects the former categorical
+    ineligibility statement; it does not establish Google approval.
 12. No backend, accounts, cloud sync, telemetry, analytics, external AI service,
     new dependency, Dexie schema change (v7, eight stores), or backup format
     change (v2 full, v1 module).
@@ -246,9 +257,11 @@ this implementation:
    prepare/send contract.
 9. Show the provider model name on completed quiz and Q&A outputs.
 
-Provider eligibility and regional restrictions remain unresolved as external
-launch conditions and continue to block real provider dispatch. No product
-decision in this section authorizes dispatch.
+At Phase 3 completion, the provider terms classification and regional
+conditions remained unresolved and real dispatch was blocked. The owner
+clarified intended personal use on 2026-11-02; this records intent, not
+provider approval. No product decision in this historical section authorizes
+dispatch.
 
 ---
 
@@ -683,7 +696,7 @@ and run the complete suite.
 - Update `docs/ARCHITECTURE.md` and `README.md` to describe the implemented
   surfaces and the still-blocked provider.
 - Update `docs/AI_LAUNCH_CHECKLIST.md` only if new automated verification gates
-  need recording; do not change the blocked status.
+  need recording; do not change the then-blocked status as part of Phase 3.
 - Add a focused documentation/disclosure test if the project's existing
   `server/ai/phase2Docs.test.ts` pattern warrants a Phase 3 counterpart.
 - Run focused tests per touched area, then the full commands in section 9.
@@ -793,7 +806,7 @@ provider behaviour. `NotesPage` and `OfficePreview` have shown load-related
 | Q&A question creating an unexpected privacy leak. | Show the full templated payload before approval; no hidden question field or notes. |
 | Oversize input or extraction limits causing a failed prepare. | Local validation where possible; explain the limit; no silent truncation; no retry. |
 | Phase 2 regression while adding shared props/helpers. | Keep summary functions/files unchanged where proposed; run focused Phase 2 tests at every step. |
-| Test-only stub or fixture enabling dispatch. | Stub stays test-only; no production import; no real provider path; safety test remains in force. |
+| Test-only stub or fixture enabling dispatch. | Stub stays test-only and cannot activate or call the production Gemini provider; the safety test remains in force. |
 | Uncommitted baseline being mistaken for Phase 3 work. | Inspect `git status` before and after; report pre-existing changes; never commit without approval. |
 | Scope creep into server, schema, backups, or dependencies. | Section 11 prohibitions; stop-and-ask rule. |
 

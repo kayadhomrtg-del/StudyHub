@@ -4,12 +4,42 @@ import { describe, expect, it } from "vitest";
 import {
   buildPreparedPayload,
   validateHostHeader,
+  validateLoopbackAddress,
   validateOriginHeader,
   validatePrepareRequest,
   validateSendRequest,
 } from "./requestValidation";
 
 const PORT = 5173;
+
+describe("loopback address validation", () => {
+  it("accepts loopback peers and listeners", () => {
+    for (const address of [
+      "127.0.0.1",
+      "127.255.255.255",
+      "::1",
+      "0:0:0:0:0:0:0:1",
+      "::ffff:127.0.0.1",
+    ]) {
+      expect(validateLoopbackAddress(address, "request").ok).toBe(true);
+      expect(validateLoopbackAddress(address, "listener").ok).toBe(true);
+    }
+  });
+
+  it("rejects non-loopback, missing, and malformed addresses", () => {
+    for (const address of [
+      "192.168.1.25",
+      "10.0.0.1",
+      "::",
+      "::ffff:192.168.1.25",
+      "not-an-address",
+    ]) {
+      expect(validateLoopbackAddress(address, "request").ok).toBe(false);
+    }
+    expect(validateLoopbackAddress(undefined, "request").ok).toBe(false);
+    expect(validateLoopbackAddress(undefined, "listener").ok).toBe(false);
+  });
+});
 
 describe("Host header validation", () => {
   it("accepts a loopback host on the port this server listens on", () => {

@@ -45,6 +45,7 @@ const KNOWN_AI_ERROR_CODES: ReadonlySet<string> = new Set<AiErrorCode>([
   "gates_exposure_not_acknowledged",
   "model_not_confirmed",
   "region_not_permitted",
+  "age_not_confirmed",
   "terms_not_eligible",
   "terms_check_stale",
   "upstream_auth",

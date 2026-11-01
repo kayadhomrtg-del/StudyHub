@@ -1,66 +1,51 @@
 # AI provider readiness and activation plan
 
-**Status:** Planning only. This document does not implement, enable, or
-authorize real provider dispatch. No API key was requested, created, or used;
-no provider request was made. A separate owner-approved milestone is required
-after Phase 4 review, verification, commit, and local deployment.
+**Status:** Superseded as a proposal by the owner-authorized Phase 5
+implementation in the current working tree. No API key was requested in chat
+or found in the repository; no live provider request has been made.
 
 **Authority:** `docs/AI_PLAN.md` and `docs/AI_LAUNCH_CHECKLIST.md` remain
 authoritative for provider eligibility, region restrictions, launch gates,
 disclosures, and activation. This document cannot override them.
 
-## 1. Existing implementation and missing components
+**Owner clarification (2026-11-02):** the owner reports that Google confirmed
+the intended personal, single-user coursework use is permitted. The written
+response and its date were not present in the project files. Record this as a
+limited owner report; do not quote it, claim broader approval, or present the
+terms as changed. The previous categorical-ineligibility statement was
+incorrect.
 
-The current Gemini integration is a **non-networking proxy skeleton**, not a
-Gemini client:
+## 1. Implemented Phase 5 architecture
 
-- `server/ai/provider.ts` exports `unconfiguredProvider`; it always returns
-  `not_configured` and makes no request.
-- `server/ai/activation.ts` exports `disabledActivationReader`; runtime
-  activation is permanently false.
-- `server/ai/pipeline.ts` accepts injected providers for tests, checks gates,
-  activation, payload integrity, and local budget, then calls the injected
-  interface. Production uses the inert provider.
-- `server/ai/config.ts` contains the existing provisional feature models,
-  schemas, and local request limits. These are not verified for any live
-  Google project.
-- No production module reads an API key, knows a provider URL, or contains an
-  HTTP client. There is no provider-connectivity command or real activation
-  path.
+- `server/ai/provider.ts` implements the Gemini provider behind the existing
+  `AiProvider` interface. It checks model metadata only after an explicit
+  setup action and sends feature requests through the existing pipeline.
+- `server/ai/secretStore.ts` uses Windows DPAPI (`CurrentUser`) and stores only
+  protected bytes under git-ignored `.study-hub/`. The browser never stores
+  the key and never calls Google directly.
+- `server/ai/configuration.ts` manages explicit setup, the model check, launch
+  gates, activation, dismissal, and key removal.
+- `server/ai/handler.ts` checks the actual listener and socket peer are
+  loopback, then validates Host/Origin before configuration or the existing
+  prepare/send contract.
+- `src/features/ai/AiConfigurationPanel.tsx` provides optional first-launch
+  setup and Settings replacement/removal controls. Navigation is not blocked.
+- The production request still requires `STUDY_HUB_AI_ENABLED=1`, a saved key,
+  launch gates, explicit local activation, and fresh exact-payload approval.
+  Dispatch remains single-attempt/no-retry.
 
-Real dispatch must remain blocked until the provider is separately approved
-and implemented. Phase 4 did not change these modules or gates.
+## 2. Server-side secret storage
 
-## 2. Secret configuration proposal (future, not implemented)
+The key is protected with the Windows user's DPAPI and is never placed in an
+environment variable, browser bundle, localStorage, sessionStorage, IndexedDB,
+URL, log, launch artifact, backup, or Git. PowerShell receives the secret
+material over stdin; it is not passed as a command-line argument. Tests inject
+an in-process fake protector and a dummy secret only.
 
-If a later owner-approved milestone implements a provider client, the proposed
-secret source is the **server process environment variable**
-`GEMINI_API_KEY`. Read it only in Node-side `server/ai/` code at request time.
-Do not use a `VITE_`-prefixed variable: Vite-prefixed values can be exposed to
-browser code.
-
-On Windows, the eventual local setup should prompt without echoing the key,
-set the environment only for the current PowerShell process and its child, and
-clear it when the foreground server exits. For a future implementation, the
-PowerShell pattern would be:
-
-```powershell
-$secureKey = Read-Host -Prompt "Gemini API key" -AsSecureString
-$keyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
-try {
-  $env:GEMINI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
-  npm run start
-} finally {
-  Remove-Item Env:\GEMINI_API_KEY -ErrorAction SilentlyContinue
-  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer)
-  $secureKey.Dispose()
-}
-```
-
-This is a **future setup pattern, not a currently supported command**:
-`npm run start` currently has no provider client and ignores this variable.
-Never paste a key into a command argument, source file, README, test fixture,
-browser storage, URL, launch-gate artifact, or log.
+The key's encrypted file is local machine state, not a portable backup. If the
+repository is moved to another Windows user or machine, that user cannot
+decrypt it; configure a replacement key through Settings. Never copy or
+commit the encrypted key file.
 
 ### Git and secret checks
 
@@ -95,17 +80,23 @@ The current configuration declares these **provisional** model assignments:
 The proxy also caps raw request bodies and serialized payloads at 1 MiB and
 prepared payloads expire after five minutes. These local values do not prove
 project availability, quota, billing eligibility, or provider limits. The
-owner must confirm the actual project models and limits; the plan and launch
-checklist's `effectiveDailyCap` remains the single source of truth for the
-local daily budget.
+user must confirm actual project model access and limits through the explicit
+metadata check and local declaration. The plan and launch checklist's
+`effectiveDailyCap` remains the single source of truth for the local daily
+budget.
 
-There is no provider timeout behavior today. If a provider client is approved,
-the proposed default is one bounded request with an `AbortController` timeout
-(initial proposal: 30 seconds), no automatic retry, no background request, and
-one budget charge immediately before the single outbound attempt. A timeout
-after dispatch must be reported as a post-dispatch/unknown-delivery outcome,
-never as "not sent"; it must not retry. Final timeout value and error mapping
-require review in that future implementation.
+The current public model catalogue lists `gemini-3.5-flash-lite` and
+`gemini-3.8-flash` as stable models, but that does not prove access or quota in
+this user's project. Google's Interactions API documentation identifies that
+API as Beta and warns that features and schemas may change. The setup metadata
+check verifies the model names only; it does not exercise the Interactions
+endpoint or guarantee a successful generation. Recheck the official API
+documentation and test generation explicitly before relying on it.
+
+Provider requests use a 30-second timeout, no redirects, no automatic retry,
+no background request, and one budget charge immediately before the single
+outbound attempt. A timeout after dispatch is reported as a post-dispatch
+failure, never as "not sent"; it is not retried.
 
 The existing pipeline already distinguishes pre-dispatch errors from
 post-dispatch errors and has a serialized local daily budget with fail-closed
@@ -114,87 +105,60 @@ once per dispatched attempt, and never describe the local cap as Google's
 quota. Provider errors, 429 classification, incomplete output, and timeout
 handling must not expose key material in UI or logs.
 
-## 4. Local connectivity test proposal
+## 4. Explicit local connection test
 
-There is no connectivity test available now, and none was run for this plan.
-Do not test provider connectivity during Phase 1–4 regression or browser
-testing.
+The Settings action “Save key and test connection” is the only setup path that
+contacts Google. It sends the key and configured model names to the model
+metadata endpoint only; no study text or prompt is sent. The connection test
+has a timeout, no redirects, no retry, and returns only safe status/model
+information. A successful check marks the configured models confirmed and
+allows local activation after the other gates pass.
 
-Only after eligibility is resolved and an owner separately authorizes provider
-implementation, add a Node-only, explicitly invoked connectivity check. It
-should:
+The user must press the button; application startup, a stored key, route
+navigation, and local fallback execution never initiate provider traffic.
 
-1. Read `GEMINI_API_KEY` only from the server process environment; reject a
-   missing key without printing its value.
-2. Use a fixed harmless probe with no course material, personal notes, or
-   user-entered content. It must not be callable by the browser or exposed as a
-   general HTTP route.
-3. Use the same configured model, timeout, error mapping, and one-request
-   budget accounting intended for production.
-4. Make exactly one request and never retry.
-5. Print only a redacted success/failure category, model identifier, and
-   non-sensitive status/request identifier. Never print headers, environment
-   values, the request body, or raw provider response.
-6. Require the exact launch gates and separate runtime activation; a key or
-   environment setting alone cannot enable it.
+## 5. Eligibility and regional requirements
 
-This procedure and command are not implemented. A future implementation must
-be reviewed before any real call. If no eligible no-content probe can be
-established, do not make a connectivity request.
+The owner reports Google's confirmation only for the intended personal,
+single-user coursework use. The written response was not available for
+inspection. The official terms still contain the professional/business versus
+consumer-use wording; do not claim the terms changed or infer approval beyond
+the owner's report. The runtime gate stores this as
+`owner_reported_confirmation`, with no invented quote.
 
-## 5. Eligibility and region prerequisites
+The UI requires the owner to select a supported region and tier. EEA,
+Switzerland, and UK selections require a paid project with active billing
+confirmed. Actual project model access, limits, age, disclosures, and local
+cap remain separate checks. Preserve frozen M1–M8 wording.
 
-Before any real dispatch:
-
-- Resolve the use restriction exactly as `docs/AI_PLAN.md` §3 specifies, using
-  an authoritative source or the separately recorded owner decision permitted
-  by that plan. A checkbox, paid account, test pass, or this proposal is not
-  evidence of eligibility.
-- Keep EEA, Switzerland, and United Kingdom restrictions fail-closed unless
-  the owner separately resolves the paid-services requirement under the AI
-  plan. Do not broaden permitted regions here.
-- Verify the actual Google project, model availability, per-project limits,
-  billing tier, terms, data use, retention, and human-review disclosures from
-  current official sources. Preserve frozen M1–M8 wording.
-- Complete every launch artifact field and independent runtime activation
-  required by the AI plan. A launch artifact or activation must never be
-  created from a sample or test fixture.
-- Obtain separate owner approval for the provider code, connectivity test, and
-  activation. Phase completion itself is not authorization.
-
-All automated tests must continue using injected in-process fakes. No Phase
-1–4 test may contact Google.
+Automated tests use injected in-process provider fakes. No test may contact
+Google. Real requests are explicitly user-triggered and are not represented by
+mock tests.
 
 ## 6. Separate activation and rollback procedure
 
-### Proposed activation sequence — future approval required
+### Activation sequence
 
-1. Owner reviews and resolves the eligibility and regional gates with evidence.
-2. Owner approves a separate implementation change for the Node-only client,
-   server-environment secret reader, timeout, error handling, budget behavior,
-   redacted connectivity command, tests, and documentation.
-3. Verify `.gitignore`, tracked files, staged diffs, and logs contain no
-   credential. Confirm the browser bundle and Vite-exposed environment contain
-   no key.
-4. Run all non-provider regression tests using only the in-process fake. Keep
-   runtime activation disabled.
-5. After a further explicit owner action, perform at most one approved
-   no-course-content connectivity attempt under the gates and local budget.
-6. Only after that succeeds and the owner separately approves activation may
-   the runtime provider path be activated. The default remains disabled.
+1. Start the loopback server with `STUDY_HUB_AI_ENABLED=1`; the flag is
+   required and does not by itself enable provider calls.
+2. In the first-launch panel or Settings, choose region/tier and complete the
+   declarations. Enter the key only in the password field and select “Save key
+   and test connection”.
+3. The server stores the key using Windows DPAPI, checks model metadata, and
+   activates only after the check and all other gates pass.
+4. For each feature request, review the complete payload and make fresh
+   explicit approval before Send.
 
-### Rollback sequence — future implementation only
+### Rollback sequence
 
-1. Disable runtime activation and the AI enable flag; stop the local server.
-2. Remove the key from the server process environment and close that process.
-   Never write it into a file to simplify rollback.
-3. Restore the inert provider/disabled activation path in a reviewed code
-   change, and rerun safety tests proving no outbound request is reachable.
+1. Stop the local server or unset `STUDY_HUB_AI_ENABLED`; generation and
+   connection checks are disabled.
+2. Use Settings to remove the saved key. If Settings is unavailable, the
+   owner may remove only the specific encrypted `.study-hub/ai-provider-secret.bin`
+   file after stopping the server.
+3. Confirm local fallbacks remain available and no AI request occurs.
 4. Preserve launch artifacts and usage history unless the owner explicitly
    requests otherwise; do not delete user data or silently reset the budget.
 5. Revoke any potentially exposed credential through the provider's official
    console. Inspect Git history/staged changes for accidental secret exposure
    without printing secret contents.
-
-This plan does not authorize or perform any activation, rollback, key
-configuration, eligibility decision, or real provider call.

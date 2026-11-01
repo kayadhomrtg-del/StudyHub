@@ -51,5 +51,5 @@ ehthumbs.db
 *.cshub-backup
 *.study-hub-backup
 
-# Local AI launch-gate artifact and usage state must stay out of Git.
+# Local AI credentials, launch gates, activation, and usage state must stay out of Git.
 /.study-hub/

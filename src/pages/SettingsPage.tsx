@@ -4,6 +4,7 @@ import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
 import { LoadingState } from "../components/ui/StatePanel";
 import { BackupService, maxBackupBytes, type RestoreMode } from "../features/backup/BackupService";
 import { moduleDatabase } from "../features/modules/moduleDatabase";
+import { AiConfigurationPanel } from "../features/ai/AiConfigurationPanel";
 
 const backupService = new BackupService(moduleDatabase);
 
@@ -167,6 +168,8 @@ export function SettingsPage() {
       {error && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200" role="alert">{error}</p>}
       {success && <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[12px] text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200" role="status">{success}</p>}
       {busy && <p className="text-[11px] text-muted" role="status">{busy}…</p>}
+
+      <AiConfigurationPanel />
 
       <section aria-labelledby="backup-heading" className="rounded-[22px] border border-line bg-surface p-5 shadow-panel sm:p-7">
         <div className="flex items-center gap-3">

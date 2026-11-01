@@ -2,7 +2,8 @@
 
 Local-first college study workspace. React 19 + TypeScript + Vite 6 + Tailwind 4 +
 Dexie/IndexedDB. No backend, accounts, cloud sync, analytics, or runtime CDNs.
-Data lives only in the browser's IndexedDB for the current origin.
+Study records live in the browser's IndexedDB for the current origin; the
+optional Gemini key is separate local server state protected with Windows DPAPI.
 
 ## Commands
 - `npm run test` · `npm run test:server` · `npm run lint` · `npm run typecheck` · `npm run build`
@@ -33,12 +34,17 @@ Data lives only in the browser's IndexedDB for the current origin.
    Do not render untrusted HTML into the live document.
 4. Backups must never silently omit a material; keep v1/v2 read compatibility and
    validate-before-write restore semantics.
-5. No backend/network/telemetry additions; keep `public/sw.js` limited to app-shell and
-   same-origin hashed assets. One narrow exception is documented in `docs/AI_PLAN.md`:
-   an optional, disabled-by-default, loopback-only Gemini proxy for a single user.
-   Real provider dispatch stays blocked while provider eligibility is unresolved
-   (see `docs/AI_LAUNCH_CHECKLIST.md`); it must never be enabled by a sample
-   configuration, a test fixture, or the completion of a phase.
+5. No backend, account, cloud sync, analytics, or telemetry additions; keep
+   `public/sw.js` limited to app-shell and same-origin hashed assets. The narrow
+   optional Gemini exception is documented in `docs/AI_PLAN.md`: loopback-only,
+   single-user, explicitly configured, and disabled unless
+   `STUDY_HUB_AI_ENABLED=1`. The owner reports Google's confirmation for the
+   intended personal coursework use; no written response was supplied to the
+   repository. Record that report narrowly and do not claim broader Google
+   approval or quote unseen correspondence. Preserve the official terms,
+   server-side gates, frozen M1–M8 disclosures, fresh exact-payload approval,
+   and single-attempt/no-retry behavior. Store keys only on the local server
+   using Windows DPAPI; never in browser storage, logs, backups, or Git.
 6. Keep changes minimal and scoped; reuse existing components/hooks/utils; do not bump
    dependency versions without a clear reason (`pdfjs-dist` is pinned exactly on purpose).
 

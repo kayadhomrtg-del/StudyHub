@@ -1,10 +1,9 @@
 /**
  * Shared types and constants for the optional StudyHub AI proxy.
  *
- * Phase 1 contains no provider client at all. The mounted provider is
- * permanently unconfigured and the runtime-activation reader is permanently
- * disabled, so a real upstream request is impossible by construction rather
- * than by configuration.
+ * The server-side provider configuration and output contracts are shared
+ * across the local proxy and the browser client. Credentials never cross
+ * this module boundary.
  */
 
 /** Route namespace served by the proxy. */
@@ -12,6 +11,9 @@ export const AI_ROUTE_PREFIX = "/api/ai";
 export const AI_STATUS_ROUTE = `${AI_ROUTE_PREFIX}/status`;
 export const AI_PREPARE_ROUTE = `${AI_ROUTE_PREFIX}/prepare`;
 export const AI_SEND_ROUTE = `${AI_ROUTE_PREFIX}/send`;
+export const AI_CONFIGURATION_ROUTE = `${AI_ROUTE_PREFIX}/configuration`;
+export const AI_CONFIGURATION_DISMISS_ROUTE = `${AI_CONFIGURATION_ROUTE}/dismiss`;
+export const AI_CONFIGURATION_REMOVE_ROUTE = `${AI_CONFIGURATION_ROUTE}/remove-key`;
 
 /**
  * The complete error taxonomy from `docs/AI_PLAN.md` section 9.3, plus the two
@@ -32,6 +34,7 @@ export type AiErrorCode =
   | "gates_exposure_not_acknowledged"
   | "model_not_confirmed"
   | "region_not_permitted"
+  | "age_not_confirmed"
   | "terms_not_eligible"
   | "terms_check_stale"
   // Post-dispatch: exactly one provider call was made.
@@ -57,6 +60,7 @@ export const PRE_DISPATCH_ERROR_CODES: readonly AiErrorCode[] = [
   "gates_exposure_not_acknowledged",
   "model_not_confirmed",
   "region_not_permitted",
+  "age_not_confirmed",
   "terms_not_eligible",
   "terms_check_stale",
 ];
@@ -84,6 +88,7 @@ export const AI_ERROR_STATUS: Record<AiErrorCode, number> = {
   gates_exposure_not_acknowledged: 403,
   model_not_confirmed: 403,
   region_not_permitted: 403,
+  age_not_confirmed: 403,
   terms_not_eligible: 403,
   terms_check_stale: 403,
   integrity_mismatch: 409,

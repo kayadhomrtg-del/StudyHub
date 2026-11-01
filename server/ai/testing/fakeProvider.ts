@@ -16,18 +16,21 @@ export interface FakeProviderOptions {
   code?: AiErrorCode;
   message?: string;
   dispatched?: boolean;
+  connectionOk?: boolean;
 }
 
 export interface FakeProvider extends AiProvider {
   /** Every payload the provider was asked to send. */
   readonly calls: AiProviderPayload[];
   readonly callCount: number;
+  readonly connectionTestCount: number;
 }
 
 export function createFakeProvider(
   options: FakeProviderOptions = {},
 ): FakeProvider {
   const calls: AiProviderPayload[] = [];
+  let connectionTestCount = 0;
 
   return {
     name: "fake",
@@ -35,6 +38,25 @@ export function createFakeProvider(
     calls,
     get callCount(): number {
       return calls.length;
+    },
+    get connectionTestCount(): number {
+      return connectionTestCount;
+    },
+    async testConnection() {
+      connectionTestCount += 1;
+      return options.connectionOk === false
+        ? {
+            ok: false,
+            status: 401,
+            models: [],
+            message: "The fake connection test failed.",
+          }
+        : {
+            ok: true,
+            status: 200,
+            models: ["gemini-3.5-flash-lite", "gemini-3.8-flash"],
+            message: "The fake connection test passed.",
+          };
     },
     async send(payload: AiProviderPayload): Promise<AiProviderResult> {
       calls.push(payload);

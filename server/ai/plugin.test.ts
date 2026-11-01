@@ -97,7 +97,12 @@ describe("AI proxy Vite plugin", () => {
       root,
       logLevel: "silent",
       optimizeDeps: { noDiscovery: true },
-      plugins: [studyHubAiProxyPlugin({ logStream: SILENT_LOG_STREAM })],
+      plugins: [
+        studyHubAiProxyPlugin({
+          env: { STUDY_HUB_AI_ENABLED: "1" },
+          logStream: SILENT_LOG_STREAM,
+        }),
+      ],
       server: { port: 0, host: "127.0.0.1" },
     });
     devServers.push(server);
@@ -111,9 +116,13 @@ describe("AI proxy Vite plugin", () => {
       headers: { host: `127.0.0.1:${port}` },
     });
 
-    expect(response.status).toBe(503);
-    const parsed = JSON.parse(response.body) as { error: { code: string } };
-    expect(parsed.error.code).toBe("not_configured");
+    expect(response.status).toBe(200);
+    const parsed = JSON.parse(response.body) as {
+      providerConfigured: boolean;
+      dispatchPossible: boolean;
+    };
+    expect(parsed.providerConfigured).toBe(false);
+    expect(parsed.dispatchPossible).toBe(false);
   });
 
   it("binds the development server to loopback only", async () => {
@@ -148,7 +157,12 @@ describe("AI proxy Vite plugin", () => {
       configFile: false,
       root,
       logLevel: "silent",
-      plugins: [studyHubAiProxyPlugin({ logStream: SILENT_LOG_STREAM })],
+      plugins: [
+        studyHubAiProxyPlugin({
+          env: { STUDY_HUB_AI_ENABLED: "1" },
+          logStream: SILENT_LOG_STREAM,
+        }),
+      ],
       preview: { port: 0, host: "127.0.0.1" },
     });
     previewServers.push(server);
@@ -161,7 +175,13 @@ describe("AI proxy Vite plugin", () => {
       path: "/api/ai/status",
       headers: { host: `127.0.0.1:${port}` },
     });
-    expect(aiResponse.status).toBe(503);
+    expect(aiResponse.status).toBe(200);
+    const aiStatus = JSON.parse(aiResponse.body) as {
+      providerConfigured: boolean;
+      dispatchPossible: boolean;
+    };
+    expect(aiStatus.providerConfigured).toBe(false);
+    expect(aiStatus.dispatchPossible).toBe(false);
 
     const pageResponse = await call({
       port,
@@ -171,6 +191,34 @@ describe("AI proxy Vite plugin", () => {
     });
     expect(pageResponse.status).toBe(200);
     expect(pageResponse.body).toContain("Study Hub");
+  });
+
+  it("keeps generation disabled without the explicit feature flag", async () => {
+    const root = await temporaryDirectory();
+    const server = await createServer({
+      configFile: false,
+      root,
+      logLevel: "silent",
+      optimizeDeps: { noDiscovery: true },
+      plugins: [studyHubAiProxyPlugin({ env: {}, logStream: SILENT_LOG_STREAM })],
+      server: { port: 0, host: "127.0.0.1" },
+    });
+    devServers.push(server);
+    await server.listen();
+
+    const port = serverPort(server);
+    const response = await call({
+      port,
+      method: "GET",
+      path: "/api/ai/status",
+      headers: { host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(503);
+    expect(JSON.parse(response.body)).toMatchObject({
+      ok: false,
+      error: { code: "not_configured" },
+    });
   });
 
   it("restores Vite's missing-build error on the preview server", async () => {

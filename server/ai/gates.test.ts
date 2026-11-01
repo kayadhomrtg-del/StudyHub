@@ -32,11 +32,13 @@ afterEach(async () => {
 
 function validArtifact(overrides: Partial<AiGateArtifact> = {}): AiGateArtifact {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     region: "non-eea-uk-ch",
     tier: "free",
     modelsConfirmed: true,
     limitsConfirmed: true,
+    ageConfirmed: true,
+    billingConfirmed: false,
     effectiveDailyCap: 20,
     exposureAcknowledged: true,
     termsEligibility: {
@@ -118,7 +120,7 @@ describe("launch-gate artifact", () => {
 
     await writeFile(
       path,
-      JSON.stringify({ schemaVersion: 1, region: "non-eea-uk-ch" }),
+      JSON.stringify({ schemaVersion: 2, region: "non-eea-uk-ch" }),
       "utf8",
     );
     const incomplete = await readGateArtifact(path);
@@ -191,14 +193,33 @@ describe("gate evaluation order", () => {
     expect(verdict.ok).toBe(true);
   });
 
-  it("blocks the regions that require paid services", () => {
+  it("requires paid service and active billing for restricted regions", () => {
     for (const region of ["eea", "switzerland", "united-kingdom"] as const) {
       const verdict = evaluateGates(validArtifact({ region }), NOW);
       expect(verdict.ok).toBe(false);
       if (!verdict.ok) {
         expect(verdict.code).toBe("region_not_permitted");
       }
+      const paid = evaluateGates(
+        validArtifact({ region, tier: "paid", billingConfirmed: true }),
+        NOW,
+      );
+      expect(paid.ok).toBe(true);
     }
+  });
+
+  it("blocks an unconfirmed age requirement and owner-reported terms without a source", () => {
+    const age = evaluateGates(validArtifact({ ageConfirmed: false }), NOW);
+    expect(age.ok).toBe(false);
+    if (!age.ok) expect(age.code).toBe("age_not_confirmed");
+
+    const reported = validArtifact();
+    reported.termsEligibility.basis = "owner_reported_confirmation";
+    reported.termsEligibility.sourceQuote = null;
+    reported.termsEligibility.sourceUrl = null;
+    const noSource = evaluateGates(reported, NOW);
+    expect(noSource.ok).toBe(false);
+    if (!noSource.ok) expect(noSource.code).toBe("gates_invalid");
   });
 
   it("blocks unconfirmed models and limits", () => {

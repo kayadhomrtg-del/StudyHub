@@ -207,28 +207,39 @@ each milestone complete.
 
 ## Optional AI feature checks
 
-**Status: Phases 1–3 implemented; Phase 4 guided recall is implemented and
-verified; owner acceptance is pending.** Phase 3 was authorized as a complete
-six-step scope. The focused checks below exercise the shared client, quiz,
-Q&A, routes, viewer links, and privacy boundaries.
+**Status: Phases 1–5 implemented in the current working tree; Phase 3 and
+Phase 4 owner acceptance remains pending.** Phase 5 adds mocked provider,
+server configuration, secret storage, and first-launch/Settings checks.
+
+**Owner-reported Google clarification (2026-11-02):** the owner reports that
+Google confirmed the intended personal coursework use. No written response was
+available in the project files. Record this as a limited report only; do not
+quote it or claim broader approval. The official terms remain documented.
 
 **Current verification (local workspace, not independent verification):** on
-**2026-11-01**, `npm run test` passed twice (**56 files / 330 tests** each
-run), `npm run test:server` passed **3 tests**, and `npm run lint`,
+**2026-11-02**, the first full `npm run test` run had two timing-sensitive
+failures in the known `NotesPage` and `OfficePreview` tests. Both passed when
+rerun directly. After the loopback-boundary fix, the full run passed
+(**61 files / 357 tests**).
+`npm run test:server` passed (**3 tests**); `npm run lint`,
 `npm run typecheck`, `npm run build`, and `git diff --check` passed. These
 results are for this working copy and do not verify live provider behaviour.
-The production build was also browser-tested on isolated loopback origins for
-core navigation, local material import/view, Phase 2–3 local fallbacks,
-guided-recall save/reveal/confirmed completion, and backup merge preservation;
-no external provider request occurred.
+The Phase 5 production-browser check confirmed the optional setup panel does
+not block Materials or Settings navigation, M1–M8 remain visible, Settings
+reports no saved key, and browser localStorage/sessionStorage are empty. The
+Continue action was not clicked, to avoid persisting a local dismissal state.
+The later security hardening verifies both the actual listener and the request
+peer are loopback before Host/Origin checks or pipeline work.
+Earlier isolated loopback browser checks covered core navigation, local
+material import/view, Phase 2–3 local fallbacks, guided-recall flows, and
+backup merge preservation; no external provider request occurred.
 
-The optional AI proxy is off by default and loopback-only. Every automated check
-that can reach a provider uses an injected in-process fake provider or an
-injected proxy stub: **a test must never contact Google**, and a test must never
-be able to enable a real request.
+The optional AI proxy is off by default and loopback-only. Every automated
+provider/configuration check uses an injected in-process fake or mocked fetch:
+**a test must never contact Google** or use a real API key.
 
-The Phase 1 checks live in `server/ai/*.test.ts`. Phase 2/3 browser checks live
-in `src/features/ai/*.test.*`, `src/pages/MaterialSummaryPage.test.tsx`,
+The server checks live in `server/ai/*.test.ts`. Browser checks live in
+`src/features/ai/*.test.*`, `src/pages/MaterialSummaryPage.test.tsx`,
 `src/pages/MaterialQuizPage.test.tsx`, `src/pages/MaterialQaPage.test.tsx`, and
 the related viewer/backup tests. All run under `npm run test`.
 
@@ -375,14 +386,19 @@ the related viewer/backup tests. All run under `npm run test`.
 | Loopback-only, single-origin proxy | Proxy mounts in dev and preview; host is `127.0.0.1` | Automated (implemented — `plugin`, `safety`) |
 | Dev and preview lifecycle both supported | Both Vite hooks registered; missing-build message restored | Automated (implemented — `plugin`) |
 | Dynamic port handling | Preview server reachable on an assigned port when the preferred one is busy | Automated (implemented — `test:server`) |
-| Real dispatch disabled by default | No key, no activation, and unresolved eligibility each fail closed | Automated (implemented — `handler`, `pipeline`, `gates`) |
+| Real dispatch disabled by default | Missing `STUDY_HUB_AI_ENABLED=1`, key, activation, or valid gates each fail closed | Automated (implemented — `plugin`, `handler`, `pipeline`, `gates`) |
 | Activation is separate from key/env configuration | Key plus env vars alone still fail closed | Automated (implemented — `handler`, `safety`) |
 | Sample artifact cannot enable dispatch | Sample is extracted from the checklist doc and asserted inert | Automated (implemented — `gates`) + manual |
-| Unresolved eligibility blocks dispatch regardless of settings | Artifact with `status: "unresolved"` is rejected | Automated (implemented — `gates`) |
+| Unresolved artifact eligibility blocks dispatch | Artifact with `status: "unresolved"` is rejected | Automated (implemented — `gates`) |
 | Missing / malformed / stale gate | Each case yields its documented deterministic error code | Automated (implemented — `gates`) |
 | Host and Origin must name the local server | A foreign Host or Origin is refused before a token or payload exists | Automated (implemented — `requestValidation`, `handler`) |
 | Local usage counter fails closed | Missing, malformed, unreadable, or corrupted counter yields `local_limit` | Automated (implemented — `budget`) |
-| No production code path can make an outbound request | Source scan plus a mounted-route test with a throwing `fetch` guard | Automated (implemented — `safety`) |
+| Provider credentials and endpoint stay server-side | Source scan excludes provider endpoint and key markers from browser code; only provider module owns external fetch | Automated (implemented — `safety`) |
+| Key never appears in response, logs, or plaintext file | Fake-protector tests, route tests, and source scan | Automated (implemented — `secretStore`, `handler`, `safety`) |
+| Configuration endpoints reject cross-origin requests | Foreign Origin refused before secret save or model test | Automated (implemented — `handler`) |
+| First-launch setup is optional and non-blocking | Continue-without-AI is remembered; app navigation remains usable | Automated (implemented — `AiConfigurationPanel.test`) |
+| Key can be replaced or removed in Settings | Mocked configuration API verifies replace/remove UI actions | Automated (implemented — `AiConfigurationPanel.test`) |
+| Gemini provider uses only mocked API responses in tests | One metadata check per configured model; one Interactions request; safe errors/no retry | Automated (implemented — `provider.test`) |
 | Consent and acknowledgement cannot override a server-side block | Blocked gate wins over an approved request | Automated (implemented — `pipeline`, `handler`) |
 | Exact payload shown before sending | Rendered payload equals the dispatched payload | Automated (implemented — `AiSummaryPage.test`, `aiClient.test`, `pipeline`) |
 | Fresh explicit approval per request | Reusing an old approval is rejected | Automated (implemented — `useAiSummaryRequest.test`, `AiSummaryPage.test`, `payloadStore`, `pipeline`) |

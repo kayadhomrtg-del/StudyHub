@@ -24,7 +24,10 @@ export type AiRegion =
 
 export type AiTier = "free" | "paid";
 
-export type AiTermsBasis = "authoritative_source" | "owner_decision";
+export type AiTermsBasis =
+  | "authoritative_source"
+  | "owner_decision"
+  | "owner_reported_confirmation";
 
 export interface AiTermsEligibility {
   status: "unresolved" | "established";
@@ -37,11 +40,13 @@ export interface AiTermsEligibility {
 }
 
 export interface AiGateArtifact {
-  schemaVersion: 1;
+  schemaVersion: 2;
   region: AiRegion;
   tier: AiTier;
   modelsConfirmed: boolean;
   limitsConfirmed: boolean;
+  ageConfirmed: boolean;
+  billingConfirmed: boolean;
   /** The single source of truth for the local daily request ceiling. */
   effectiveDailyCap: number;
   exposureAcknowledged: boolean;
@@ -73,6 +78,7 @@ const TIERS: readonly AiTier[] = ["free", "paid"];
 const TERMS_BASES: readonly AiTermsBasis[] = [
   "authoritative_source",
   "owner_decision",
+  "owner_reported_confirmation",
 ];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -96,7 +102,7 @@ export function parseGateArtifact(value: unknown): AiGateRead {
     return { status: "invalid", reason: "The launch artifact is not a JSON object." };
   }
 
-  if (value.schemaVersion !== 1) {
+  if (value.schemaVersion !== 2) {
     return {
       status: "invalid",
       reason: `Unsupported launch artifact schemaVersion: ${JSON.stringify(value.schemaVersion)}.`,
@@ -121,6 +127,14 @@ export function parseGateArtifact(value: unknown): AiGateRead {
 
   if (typeof value.exposureAcknowledged !== "boolean") {
     return { status: "invalid", reason: "exposureAcknowledged must be a boolean." };
+  }
+
+  if (typeof value.ageConfirmed !== "boolean") {
+    return { status: "invalid", reason: "ageConfirmed must be a boolean." };
+  }
+
+  if (typeof value.billingConfirmed !== "boolean") {
+    return { status: "invalid", reason: "billingConfirmed must be a boolean." };
   }
 
   if (
@@ -168,7 +182,8 @@ export function parseGateArtifact(value: unknown): AiGateRead {
   ) {
     return {
       status: "invalid",
-      reason: "termsEligibility.basis must be null, authoritative_source, or owner_decision.",
+      reason:
+        "termsEligibility.basis must be null, authoritative_source, owner_decision, or owner_reported_confirmation.",
     };
   }
 
@@ -184,11 +199,13 @@ export function parseGateArtifact(value: unknown): AiGateRead {
   }
 
   const artifact: AiGateArtifact = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     region: value.region as AiRegion,
     tier: value.tier as AiTier,
     modelsConfirmed: value.modelsConfirmed,
     limitsConfirmed: value.limitsConfirmed,
+    ageConfirmed: value.ageConfirmed,
+    billingConfirmed: value.billingConfirmed,
     effectiveDailyCap: value.effectiveDailyCap,
     exposureAcknowledged: value.exposureAcknowledged,
     termsEligibility: {
@@ -250,6 +267,10 @@ export async function readGateArtifact(path: string): Promise<AiGateRead> {
 }
 
 function isCompleteDetermination(terms: AiTermsEligibility): boolean {
+  const sourceIsComplete =
+    terms.basis === "owner_reported_confirmation"
+      ? terms.sourceUrl !== null && terms.sourceUrl.trim() !== ""
+      : terms.sourceQuote !== null && terms.sourceQuote.trim() !== "";
   return (
     terms.determinedAt !== null &&
     terms.determinedAt.trim() !== "" &&
@@ -258,8 +279,7 @@ function isCompleteDetermination(terms: AiTermsEligibility): boolean {
     terms.basis !== null &&
     terms.sourceUrl !== null &&
     terms.sourceUrl.trim() !== "" &&
-    terms.sourceQuote !== null &&
-    terms.sourceQuote.trim() !== "" &&
+    sourceIsComplete &&
     terms.intendedUse !== null &&
     terms.intendedUse.trim() !== ""
   );
@@ -309,12 +329,23 @@ export function evaluateGates(
     };
   }
 
-  if (artifact.region !== "non-eea-uk-ch") {
+  if (!artifact.ageConfirmed) {
+    return {
+      ok: false,
+      code: "age_not_confirmed",
+      reason: "The owner has not confirmed the provider's 18+ age requirement.",
+    };
+  }
+
+  if (
+    artifact.region !== "non-eea-uk-ch" &&
+    (artifact.tier !== "paid" || !artifact.billingConfirmed)
+  ) {
     return {
       ok: false,
       code: "region_not_permitted",
       reason:
-        "The recorded region requires Paid Services, which are out of scope for this plan.",
+        "This region requires an active Paid Services project for the configured use.",
     };
   }
 

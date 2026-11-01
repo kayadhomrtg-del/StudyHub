@@ -10,6 +10,7 @@ import { createAiHandler } from "./handler";
 import { AiPayloadStore } from "./payloadStore";
 import { createFakeProvider } from "./testing/fakeProvider";
 import type { AiActivationReader } from "./activation";
+import { AiSecretStore, type SecretProtector } from "./secretStore";
 
 const NOW = new Date("2026-10-22T12:00:00.000Z");
 const TODAY = localDateKey(NOW);
@@ -18,8 +19,8 @@ const servers: Server[] = [];
 
 /**
  * A test double for the explicit activation step. It exists so the handshake
- * can be exercised over HTTP. The production activation reader is permanently
- * disabled, and the production route is covered separately.
+ * can be exercised over HTTP. The production activation reader is covered
+ * separately.
  */
 const ACTIVATED: AiActivationReader = {
   read: () => ({ activated: true, reason: "activated by the test double" }),
@@ -90,11 +91,13 @@ async function startServer(
 
 function artifact(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     region: "non-eea-uk-ch",
     tier: "free",
     modelsConfirmed: true,
     limitsConfirmed: true,
+    ageConfirmed: true,
+    billingConfirmed: false,
     effectiveDailyCap: 20,
     exposureAcknowledged: true,
     termsEligibility: {
@@ -114,6 +117,7 @@ interface Harness {
   port: number;
   usagePath: string;
   provider: ReturnType<typeof createFakeProvider>;
+  secretStore: AiSecretStore;
   logLines: string[];
 }
 
@@ -123,7 +127,9 @@ async function harness(
     artifactOverrides?: Record<string, unknown>;
     writeArtifact?: boolean;
     provider?: ReturnType<typeof createFakeProvider>;
+    secretStore?: AiSecretStore;
     production?: boolean;
+    listenerAddress?: string | null;
   } = {},
 ): Promise<Harness> {
   const directory = await mkdtemp(join(tmpdir(), "study-hub-ai-handler-"));
@@ -151,6 +157,15 @@ async function harness(
   );
 
   const provider = options.provider ?? createFakeProvider();
+  const secretProtector: SecretProtector = {
+    protect: async (secret) =>
+      Buffer.from(`protected:${secret.toString("base64")}`),
+    unprotect: async (encrypted) =>
+      Buffer.from(encrypted.toString("utf8").replace(/^protected:/, ""), "base64"),
+  };
+  const secretStore =
+    options.secretStore ??
+    new AiSecretStore(join(directory, ".study-hub", "provider-key.bin"), secretProtector);
   const logLines: string[] = [];
   let port = 0;
 
@@ -160,8 +175,12 @@ async function harness(
     usageFilePath: usagePath,
     budget: new AiBudget(usagePath, () => NOW),
     payloadStore: new AiPayloadStore(),
+    secretStore,
     now: () => NOW,
-    env: options.enabled === false ? {} : { STUDY_HUB_AI_ENABLED: "1" },
+    env:
+      options.enabled === false
+        ? { STUDY_HUB_AI_ENABLED: "0" }
+        : { STUDY_HUB_AI_ENABLED: "1" },
     logStream: {
       write(chunk: string) {
         logLines.push(chunk);
@@ -169,6 +188,10 @@ async function harness(
       },
     },
     serverPort: () => port,
+    serverAddress: () =>
+      options.listenerAddress === undefined
+        ? "127.0.0.1"
+        : options.listenerAddress,
     ...(options.production
       ? {}
       : { provider, activation: ACTIVATED }),
@@ -177,7 +200,7 @@ async function harness(
   const started = await startServer(handler);
   port = started.port;
 
-  return { port, usagePath, provider, logLines };
+  return { port, usagePath, provider, secretStore, logLines };
 }
 
 afterEach(async () => {
@@ -196,6 +219,174 @@ afterEach(async () => {
 });
 
 describe("AI proxy routes", () => {
+  it("reports configuration without returning a saved key", async () => {
+    const { port, secretStore } = await harness();
+    const key = "test-gemini-secret-key-value-123456";
+    await secretStore.save(key);
+    const response = await call({
+      port,
+      method: "GET",
+      path: "/api/ai/configuration",
+      headers: { host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).not.toContain(key);
+    expect(response.body).not.toContain("apiKey");
+    const parsed = JSON.parse(response.body) as {
+      ok: boolean;
+      configuration: { hasKey: boolean; setupSkipped: boolean };
+    };
+    expect(parsed).toMatchObject({
+      ok: true,
+      configuration: { hasKey: true, setupSkipped: false },
+    });
+  });
+
+  it("saves a key only on an explicit same-origin test and never returns or logs it", async () => {
+    const { port, provider, logLines } = await harness();
+    const key = "test-gemini-secret-key-value-123456";
+    const response = await call({
+      port,
+      method: "POST",
+      path: "/api/ai/configuration",
+      headers: {
+        host: `127.0.0.1:${port}`,
+        origin: `http://127.0.0.1:${port}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        apiKey: key,
+        region: "non-eea-uk-ch",
+        tier: "free",
+        ageConfirmed: true,
+        billingConfirmed: false,
+        exposureAcknowledged: true,
+        limitsConfirmed: true,
+        effectiveDailyCap: 20,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).not.toContain(key);
+    expect(logLines.join("")).not.toContain(key);
+    expect(provider.connectionTestCount).toBe(1);
+    expect(JSON.parse(response.body)).toMatchObject({
+      ok: true,
+      configuration: { hasKey: true, activated: true },
+    });
+  });
+
+  it("reports a saved key when the model check fails and never returns the key", async () => {
+    const provider = createFakeProvider({ connectionOk: false });
+    const { port, secretStore, logLines } = await harness({ provider });
+    const key = "test-gemini-secret-key-value-123456";
+    const response = await call({
+      port,
+      method: "POST",
+      path: "/api/ai/configuration",
+      headers: {
+        host: `127.0.0.1:${port}`,
+        origin: `http://127.0.0.1:${port}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        apiKey: key,
+        region: "non-eea-uk-ch",
+        tier: "free",
+        ageConfirmed: true,
+        billingConfirmed: false,
+        exposureAcknowledged: true,
+        limitsConfirmed: true,
+        effectiveDailyCap: 20,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).not.toContain(key);
+    expect(logLines.join("")).not.toContain(key);
+    expect(await secretStore.read()).toBe(key);
+    expect(JSON.parse(response.body)).toMatchObject({
+      ok: false,
+      configuration: { hasKey: true, activated: false },
+      message: expect.stringContaining("The key was saved, but the connection test failed."),
+    });
+  });
+
+  it("allows explicit configuration testing while generation is disabled", async () => {
+    const { port, provider, secretStore } = await harness({ enabled: false });
+    const key = "test-gemini-secret-key-value-123456";
+    const response = await call({
+      port,
+      method: "POST",
+      path: "/api/ai/configuration",
+      headers: {
+        host: `127.0.0.1:${port}`,
+        origin: `http://127.0.0.1:${port}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        apiKey: key,
+        region: "non-eea-uk-ch",
+        tier: "free",
+        ageConfirmed: true,
+        billingConfirmed: false,
+        exposureAcknowledged: true,
+        limitsConfirmed: true,
+        effectiveDailyCap: 20,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).not.toContain(key);
+    expect(await secretStore.read()).toBe(key);
+    expect(provider.connectionTestCount).toBe(1);
+    expect(JSON.parse(response.body)).toMatchObject({
+      ok: true,
+      configuration: { hasKey: true, activated: true },
+    });
+  });
+
+  it("rejects cross-origin key setup before saving a credential or testing upstream", async () => {
+    const { port, provider, secretStore } = await harness();
+    const key = "test-gemini-secret-key-value-123456";
+    const response = await call({
+      port,
+      method: "POST",
+      path: "/api/ai/configuration",
+      headers: {
+        host: `127.0.0.1:${port}`,
+        origin: "http://attacker.example",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ apiKey: key }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(await secretStore.hasSecret()).toBe(false);
+    expect(provider.connectionTestCount).toBe(0);
+  });
+
+  it("allows Continue without AI while generation is paused and never contacts the provider", async () => {
+    const { port, provider } = await harness({ enabled: false });
+    const response = await call({
+      port,
+      method: "POST",
+      path: "/api/ai/configuration/dismiss",
+      headers: {
+        host: `127.0.0.1:${port}`,
+        origin: `http://127.0.0.1:${port}`,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      ok: true,
+      configuration: { setupSkipped: true, hasKey: false },
+    });
+    expect(provider.connectionTestCount).toBe(0);
+  });
+
   it("answers with not_configured while the feature is disabled", async () => {
     const { port } = await harness({ enabled: false });
 
@@ -258,6 +449,23 @@ describe("AI proxy routes", () => {
       body: "{}",
     });
     expect(missingOrigin.status).toBe(403);
+  });
+
+  it("rejects AI routes when the server listener is exposed beyond loopback", async () => {
+    const { port, provider } = await harness({ listenerAddress: "0.0.0.0" });
+    const response = await call({
+      port,
+      method: "GET",
+      path: "/api/ai/status",
+      headers: { host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(403);
+    expect(
+      (JSON.parse(response.body) as { error: { code: string } }).error.code,
+    ).toBe("forbidden_origin");
+    expect(provider.callCount).toBe(0);
+    expect(provider.connectionTestCount).toBe(0);
   });
 
   it("rejects an unknown route and the wrong method", async () => {
@@ -405,7 +613,7 @@ describe("AI proxy routes", () => {
       dispatchPossible: boolean;
     };
 
-    expect(parsed.provider).toBe("unconfigured");
+    expect(parsed.provider).toBe("gemini");
     expect(parsed.providerConfigured).toBe(false);
     expect(parsed.dispatchPossible).toBe(false);
   });

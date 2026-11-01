@@ -406,13 +406,11 @@ The app must not require login or internet access for core use.
 - No remote AI API calls or remote summarization by default. One narrow, optional
   exception is documented in `docs/AI_PLAN.md`: a same-machine loopback proxy used by a
   single user for personal study. The browser sends selected extracted text to that local
-  proxy during preparation; preparation does not contact a provider. Real provider
-  dispatch remains blocked while eligibility is unresolved
-  (`docs/AI_LAUNCH_CHECKLIST.md`), and the application must remain fully usable with the
-  feature switched off.
-- No requests send study content to a remote service. Any future provider request requires
-  a payload the user has reviewed in full and explicitly approved immediately before it is
-  sent.
+  proxy during preparation; preparation does not contact a provider. Gemini generation
+  remains disabled unless explicitly enabled and configured; the application remains
+  fully usable with the feature switched off.
+- Any provider request requires a payload the user has reviewed in full and explicitly
+  approved immediately before it is sent.
 - Provider-side handling is disclosed separately from local storage: provider retention,
   abuse monitoring, possible human review, and free-tier product-improvement use are
   stated from current official documentation and are never implied by "local-only".
@@ -721,9 +719,11 @@ You are helping build College Study Hub, a local-first college study application
 - Do not add a backend, login, cloud sync, analytics, telemetry, or external AI API.
   One narrow exception is documented in `docs/AI_PLAN.md`: an optional,
   disabled-by-default, loopback-only Gemini proxy for a single user on personal study
-  material. Real provider dispatch stays blocked until provider eligibility is resolved
-  (`docs/AI_LAUNCH_CHECKLIST.md`); do not enable dispatch from a sample configuration, a
-  test fixture, or the completion of a phase.
+  material. The owner reports Google's confirmation for the intended personal coursework
+  use; no written response was supplied to the project. Do not claim broader approval or
+  quote unseen correspondence. Preserve the current official terms and all server-side
+  gates. Never enable dispatch from a sample configuration, test fixture, or phase
+  completion.
 - Do not load runtime fonts, scripts, or styles from a CDN.
 - Do not execute imported files or render imported HTML as trusted content.
 - Do not wipe the database to fix a bug.

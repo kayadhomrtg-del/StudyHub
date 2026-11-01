@@ -23,7 +23,8 @@ Never infer approval from silence, a passing test, or a completed step.
 StudyHub is a personal, local-first college study workspace built with React
 19, TypeScript, Vite 6, Tailwind 4, and Dexie/IndexedDB. It has no accounts,
 hosted backend, cloud sync, analytics, telemetry, or runtime CDN. Study data
-belongs to the current browser profile and origin.
+belongs to the current browser profile and origin. The optional Gemini API key
+is separate server-side local state, protected with Windows DPAPI.
 
 - Routes and app shell: `src/main.tsx`, `src/App.tsx`.
 - Features follow `type` → repository → service → page/component; pages do not
@@ -48,9 +49,9 @@ check, not approval. There are no retries. The deterministic local fallback
 makes zero `fetch` calls.
 
 - **Phase 0:** AI requirements, privacy, and launch-gate documentation complete.
-- **Phase 1:** proxy skeleton implemented; provider permanently unconfigured,
-  activation reader disabled, and no production API-key lookup, provider
-  endpoint, or HTTP client.
+- **Phase 1:** loopback proxy skeleton, validation, gates, budget, and
+  prepare/send pipeline implemented. At that stage provider dispatch was
+  unconfigured; Phase 5 added the Gemini provider and explicit local activation.
 - **Phase 2:** summary route, local extraction, exact-payload review, fresh
   approval, request state machine, disclosures, errors, fallback, and focused
   tests implemented. Reuse this work; do not create a second request pipeline.
@@ -64,14 +65,19 @@ makes zero `fetch` calls.
   ordinary notes linked to the material; the note model has no session link.
   Finish requires explicit confirmation and updates the selected session
   through the existing service. No AI or external request is made.
+- **Phase 5:** the Gemini provider, optional first-launch setup, Settings
+  key management, and Windows DPAPI-protected server-only key storage are
+  implemented in the existing pipeline. The connection test sends only model
+  metadata requests after the user explicitly selects the test button.
+  Generation requires `STUDY_HUB_AI_ENABLED=1`, successful model access,
+  complete gates, local activation, and fresh payload approval.
 
-Real provider dispatch remains **blocked**: eligibility is unresolved and the
-production provider/activation path is structurally unavailable. Never enable,
-simulate, or request real dispatch.
-For separately authorized provider-readiness work, read
-`docs/AI_PROVIDER_ACTIVATION_PLAN.md` as a proposal only. `docs/AI_PLAN.md` and
-`docs/AI_LAUNCH_CHECKLIST.md` remain authoritative; the proposal grants no
-eligibility or activation approval.
+The owner reports that Google confirmed the intended personal coursework use.
+No written response was available in the project files. Record only this
+limited report; do not claim broader Google approval or quote unseen
+correspondence. Keep the official terms, all technical gates, disclosures, and
+per-request approval requirements unchanged. `docs/AI_PLAN.md` and
+`docs/AI_LAUNCH_CHECKLIST.md` are authoritative.
 
 ## Phase 3 and privacy boundaries
 
@@ -92,7 +98,7 @@ The Phase 3 defaults and model-display choice recorded in
 `docs/PHASE_3_PLAN.md` are resolved for that implementation. Stop for owner
 approval before any new scope and before any production `server/ai/`,
 prepare/send contract, provider, gate, activation, region, schema, backup, or
-dependency change.
+dependency change unless included in explicit owner authorization.
 
 - Show the complete exact outbound payload and require fresh approval for each
   request. Never treat its digest as authorization.
@@ -108,10 +114,10 @@ dependency change.
   AI.
 - Keep AI state in memory. A refresh or route change clears it. Fallbacks make
   zero `fetch` calls.
-- Tests use injected stubs or in-process fakes only; never contact Google or
-  enable real dispatch.
-- Do not add a provider endpoint, key lookup, HTTP client, activation path,
-  network destination, backend, telemetry, or background/retry request.
+- Tests use injected stubs or in-process fakes only; never contact Google.
+- Do not add a second provider pipeline or network destination. Keep the
+  existing Gemini endpoint in server-only code and never expose its credential
+  to the browser. Do not add backend, telemetry, background, or retry paths.
 - Preserve schema v7/eight stores, backup v2/v1, and `public/sw.js`'s
   same-origin asset boundary. Never delete user data or execute/render imported
   HTML; keep provider text inert.
@@ -133,6 +139,6 @@ test fails, report the exact failure and rerun a focused test when a known
 load-related flake is suspected. Do not claim unrun checks passed.
 
 For each approved task, report its scope, changed files and reasons, exact
-commands/results, privacy and persistence checks, confirmation that provider
-dispatch remains blocked, schema/backup/dependency/server changes, and
-limitations. Never continue into additional work without explicit approval.
+commands/results, privacy and persistence checks, whether provider dispatch
+was actually tested, schema/backup/dependency/server changes, and limitations.
+Never continue into additional work without explicit approval.

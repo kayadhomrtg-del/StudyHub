@@ -93,7 +93,7 @@ export const AI_FEATURE_CONFIGS: Record<AiFeature, AiFeatureConfig> = {
       "Summarise the supplied study material for a single learner. " +
       "Use only the supplied text. If the text does not answer something, say so.",
     responseFormat: {
-      type: "json_schema",
+      type: "text",
       mime_type: "application/json",
       schema: SUMMARY_SCHEMA,
     },
@@ -109,7 +109,7 @@ export const AI_FEATURE_CONFIGS: Record<AiFeature, AiFeatureConfig> = {
       "Write practice questions about the supplied study material for a single " +
       "learner. Use only the supplied text.",
     responseFormat: {
-      type: "json_schema",
+      type: "text",
       mime_type: "application/json",
       schema: QUIZ_SCHEMA,
     },
@@ -125,7 +125,7 @@ export const AI_FEATURE_CONFIGS: Record<AiFeature, AiFeatureConfig> = {
       "Answer the question using only the supplied study material for a single " +
       "learner. If the text does not answer the question, say so.",
     responseFormat: {
-      type: "json_schema",
+      type: "text",
       mime_type: "application/json",
       schema: QA_SCHEMA,
     },
@@ -156,10 +156,7 @@ export const AI_USAGE_FILENAME = "ai-usage.json";
 /** Environment variable that enables the local proxy routes. */
 export const AI_ENABLED_ENV_VAR = "STUDY_HUB_AI_ENABLED";
 
-/**
- * The proxy routes are always mounted but answer with `not_configured` unless
- * this variable is exactly `1`.
- */
+/** Generation routes are disabled unless this is set to `1`. */
 export function isAiEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env[AI_ENABLED_ENV_VAR] === "1";
 }

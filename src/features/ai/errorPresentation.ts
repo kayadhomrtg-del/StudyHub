@@ -56,6 +56,8 @@ function reasonForCode(code: AiClientErrorCode): string {
       return "The model has not been confirmed for this project.";
     case "region_not_permitted":
       return "This region is not permitted for the selected service.";
+    case "age_not_confirmed":
+      return "The required 18+ age confirmation is not recorded.";
     case "terms_not_eligible":
       return "Provider eligibility is unresolved, so no provider request can be made.";
     case "terms_check_stale":

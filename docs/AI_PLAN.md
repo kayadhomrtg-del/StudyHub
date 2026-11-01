@@ -1,15 +1,19 @@
 # StudyHub AI — v5.1 plan
 
-**Status:** Phases 1, 2, and 3 are implemented; final owner acceptance is
-pending. Phase 3 added quiz and single-turn Q&A surfaces over the shared
-prepare/review/approve/send pipeline. No real provider dispatch exists, and
-none is possible in the current code.
-Phase 4 adds a separate local guided-recall workflow; it does not add AI
-behavior or change any provider gate, eligibility decision, or activation
-restriction.
+**Status:** Phases 1–4 are implemented; final owner acceptance of Phases 3 and
+4 remains pending. Phase 5 Gemini integration is implemented in the working
+tree; automated verification is in progress and no live API call has been
+made. The owner reports that Google confirmed the intended personal,
+single-user coursework use is permitted. No written response was available in
+the project files, so this records the owner's report only and does not claim
+broader or independently verified Google approval. Phase 4 remains a separate
+local guided-recall workflow and never sends recall notes or personal notes to
+Gemini.
 **Scope:** one person, one browser profile, one machine, personal study use.
 **Provider:** Google Gemini API, via a local loopback proxy.
-**Real provider dispatch:** blocked — see [Provider eligibility](#3-provider-eligibility-hard-gate-unresolved).
+**Real provider dispatch:** available only after explicit local setup, a
+successful model-access check, all launch gates, `STUDY_HUB_AI_ENABLED=1`, and
+fresh approval of the exact payload.
 
 ---
 
@@ -51,12 +55,13 @@ document wins for AI behaviour only; for everything else those documents win.
 - New npm dependencies. The proxy uses Node built-ins and `fetch` only; a new
   dependency requires a written justification and owner approval.
 
-**Non-goal that matters most:** this plan does not conclude that Google permits
-this use. Section 3 explains why that question is still open.
+**Non-goal that matters most:** this plan does not claim Google's confirmation
+extends beyond the owner's reported intended use. Section 3 records both the
+official terms and the limited owner-reported clarification.
 
-## 3. Provider eligibility (hard gate, unresolved)
+## 3. Provider terms and intended-use clarification
 
-### 3.1 What Google's terms say
+### 3.1 What Google's current terms say
 
 The Gemini API Additional Terms of Service
 (<https://ai.google.dev/terms>, effective **2026-03-23**, page last updated
@@ -78,57 +83,73 @@ The same page describes the **Unpaid Services** data use:
 > process your API input and output**. […] **Do not submit sensitive,
 > confidential, or personal information to the Unpaid Services.**
 
-### 3.2 Why this is unresolved
+### 3.2 Owner-reported clarification
 
-A search for official guidance distinguishing a personal study tool from
-"consumer use" returned **only community sources** — forum threads, Reddit, and
-social-media posts — and **no authoritative Google document**. Nothing in
-Google's published documentation says that personal coursework use qualifies as
-"professional or business purposes", and nothing says that it does not.
+The owner reports that Google confirmed the intended personal, single-user
+StudyHub coursework and study use is permitted under the applicable Gemini API
+requirements. The owner gave this clarification on **2026-11-02**; the date of
+Google's response was not provided. No written response or other record of
+Google's communication was available in the project files. An earlier
+documentation statement that this use was categorically ineligible was
+incorrect and must not be repeated as a confirmed Google decision.
 
-Personal coursework use therefore **cannot be shown** to satisfy the use
-restriction from authoritative information.
+The official terms reviewed still state that Gemini API/AI Studio use is for
+developers building with the models for "professional or business purposes,
+not for consumer use." The owner-reported clarification is recorded as limited
+to the intended use described above. It is not a quotation, is not
+independently verified by this repository, and is not evidence that Google
+approved the account, project, other use cases, or any broader deployment.
+
+The project proceeds on the owner's explicit report for this intended use.
+This project record does not reinterpret or amend Google's general terms.
+Technical requirements remain independently gated, and every provider request
+still requires the existing disclosure, exact-payload review, fresh approval,
+local activation, and budget checks.
 
 ### 3.3 The rule this plan follows
 
-Eligibility **cannot be established** ⇒ it is recorded as `unresolved` ⇒ **real
-upstream dispatch stays blocked**. Specifically:
+The launch artifact records the limited owner-reported clarification as
+`termsEligibility.status: "established"` with
+`basis: "owner_reported_confirmation"`, a null source quote, and an audit note
+that the written response was not supplied. This project state relies on the
+owner's report only and is not an independent legal determination. Specifically:
 
 - A **paid account** does not establish eligibility. It changes data handling
   (see M1) and regional availability; it says nothing about the use
   restriction.
 - An **acknowledgement checkbox** does not establish eligibility. It is a user
   declaration, not evidence.
-- A **written rationale** entered by the user does not establish eligibility.
-  It is a user declaration, not evidence.
-- **This plan does not invent a legal conclusion**, in either direction.
+- The owner's report is recorded as a narrow statement about this intended
+  personal coursework use, not as approval for other accounts or deployments.
+- The general terms and their consumer-use wording remain unchanged and are
+  disclosed as relevant provider terms.
 
-The launch artifact therefore records `termsEligibility.status: "unresolved"`
-until an authoritative determination exists. A determination is *evidence*, not
-a preference: it must cite a specific official source and quote it.
+The gate evaluator validates artifact shape, age, region, model access, limits,
+disclosures, and staleness. It cannot verify Google's communication and does
+not make a legal determination. A passing gate reflects the owner's recorded
+input and technical checks; it is not independent proof of provider approval.
 
-### 3.4 Second hard gate: region
+### 3.4 Regional terms and conservative project gate
 
-Because "You may use only Paid Services when making API Clients available to
-users in the European Economic Area, Switzerland, or the United Kingdom", and
-because paid tier and billing are **out of scope** for this plan, users in the
-EEA, Switzerland, and the United Kingdom **cannot use the feature at all**. The
-artifact records `region` and the server rejects `eea`, `switzerland`, and
-`united-kingdom` with `region_not_permitted`.
+The official terms say Paid Services are required when making API Clients
+available to users in the European Economic Area, Switzerland, or the United
+Kingdom. StudyHub is specified as a local, single-user application and this
+record does not establish that the clause applies to the owner's direct use.
+The owner's location, account tier, and project configuration have not been
+confirmed here.
+
+The current launch-gate implementation conservatively rejects region values
+`eea`, `switzerland`, and `united-kingdom` with `region_not_permitted`; that is
+a project safeguard, not a finding about the owner's location or a definitive
+interpretation of the terms. Do not relax the gate or claim the owner is in a
+restricted region without evidence.
 
 ### 3.5 What would resolve it
 
-Exactly one of the following, recorded with a source URL and a verbatim quote:
-
-1. An authoritative Google document that states the intended use is permitted.
-2. A written decision by the repository owner to proceed as a personal,
-   non-commercial use of an unpaid API under their own account and their sole
-   responsibility — recorded as `basis: "owner_decision"` with
-   `sourceQuote` naming the terms section being relied on.
-
-Option 2 is a decision, not a legal opinion, and the artifact labels it as
-such. Whichever is used, it is a **separate, explicitly approved step** and is
-not part of Phase 0, 1, 2, or 3.
+The owner has reported that Google confirmed the intended use. If the owner
+later supplies written confirmation, record only its relevant scope and date;
+do not paraphrase beyond what it supports. Until then, keep the record clearly
+labelled owner-reported and do not claim independent verification.
 
 ## 4. Three separated milestones
 
@@ -138,10 +159,10 @@ These are deliberately separate. Finishing one proves nothing about the next.
 | --- | --- | --- |
 | **M-A — Local infrastructure** | UI, loopback proxy, validation, limits, launch gates. | **None.** |
 | **M-B — Stub verification** | In-process fake provider; the full pipeline exercised end to end. | **None.** Zero external requests. |
-| **M-C — Real authorization** | A single authorized real request, if and when eligibility is resolved. | One request, explicitly authorized. |
+| **M-C — Real integration** | Optional server-side Gemini configuration and the existing shared request pipeline. | Only explicit metadata checks and fresh, approved feature requests. |
 
-M-C is **out of scope for this plan** and is blocked by Section 3. Phases 1–3
-below all sit inside M-A and M-B.
+M-C is owner-authorized for the limited intended use; it does not remove any
+technical gate or user approval requirement.
 
 ## 5. Phase plan
 
@@ -179,8 +200,8 @@ approval of the previous phase's diff.**
 2. `docs/PRODUCT_SPEC.md` §8 and §15, `docs/ARCHITECTURE.md` "Design and
    privacy"/"Boundaries", and `README.md` no longer contradict one another or
    this plan.
-3. `docs/AI_PLAN.md` states the personal-use scope, the unresolved eligibility
-   position with verbatim citations, the three separated milestones, the
+3. `docs/AI_PLAN.md` states the personal-use scope, the official terms and
+   limited owner-reported clarification, the three separated milestones, the
    activation conjunction, immutable disclosures M1–M8, the separation of the
    three retention mechanisms, the request/budget/fallback rules, the error
    taxonomy, and model configurability.
@@ -272,7 +293,8 @@ architecture:
 **Fixed check order.** The first failing check wins, and every failure is
 fail-closed:
 
-`route and method` → `loopback Host` → `Origin` → `STUDY_HUB_AI_ENABLED` →
+`route and method` → `loopback listener` → `loopback peer` → `loopback Host`
+→ `Origin` → `STUDY_HUB_AI_ENABLED` →
 `artifact exists` → `schema valid` → `terms established` → `determination
 complete` → `not stale` → `region` → `models and limits` → `exposure` → `cap
 valid` → `activation` → `input validation` → `budget` → `token and digest` →
@@ -288,21 +310,23 @@ and `.study-hub/ai-usage.json` (the usage counter). Both are plain local
 files under the git-ignored `.study-hub/` directory. No database store is
 added.
 
-**Host and Origin.** Both are checked before a token is created or a payload
-is stored. The Host header must name a loopback host on the port the server is
-actually listening on. A mutating request must also carry an Origin naming
-that same loopback authority. Both failures map to `forbidden_origin`.
+**Listener, peer, Host, and Origin.** The handler checks that the actual Vite
+listener and the request socket's peer address are loopback before trusting
+headers. This remains enforced if Vite's host is overridden. The Host header
+must name a loopback host on the port the server is actually listening on. A
+mutating request must also carry an Origin naming that same loopback authority.
+Any boundary failure maps to `forbidden_origin`, before a token or payload is
+created.
 
 **Structured log.** One JSON line per request on standard output, with
 exactly these fields: `method`, `path`, `status`, `durationMs`, `bytesIn`,
 `bytesOut`, `model`, `upstreamStatus`, `upstreamAttempted`, `errorCode`, and
 `gateVerdict` (`pass`, `blocked`, `not_evaluated`, or `disabled`).
 
-**Inert by construction.** The mounted provider is permanently unconfigured
-and the runtime-activation reader is permanently disabled, so a real upstream
-request is impossible in the current code — not merely unconfigured. The
-production modules contain no HTTP client and no provider endpoint; the
-safety suite enforces this by scanning the source.
+**Historical Phase 1 state.** At the end of Phase 1 the provider was
+unconfigured and activation disabled. Phase 5 adds the provider and local
+configuration path; the current request remains gated by explicit setup,
+activation, and payload approval.
 
 ### Phase 2 — Summary UI and request pipeline against the stub (implemented)
 
@@ -357,8 +381,8 @@ safety suite enforces this by scanning the source.
   - No AI prompt, output, or history is written to IndexedDB; a backup
     contains no AI records.
   - The fallback performs zero provider requests.
-  - Real dispatch is still impossible: the Phase 1 gate evaluation and
-    activation reader are unchanged and eligibility remains unresolved.
+  - Phase 2 did not enable real dispatch; it retained the Phase 1 provider
+    boundary and gates.
 - **Rollback:** remove the summary route and components; the Phase 1 proxy
   remains but is unreachable from the UI.
 - **Approval checkpoint:** Steps 1–4 were approved by the owner. Step 5 is a
@@ -394,10 +418,9 @@ safety suite enforces this by scanning the source.
 
 **Current limitations.**
 
-- Real provider dispatch remains impossible. The production provider is
-  permanently unconfigured, the activation reader is permanently disabled, and
-  no production module contains a provider endpoint, HTTP client, or API-key
-  lookup. Provider eligibility is still unresolved.
+- At the time Phase 2 was implemented, real provider dispatch was unavailable:
+  no production provider endpoint, HTTP client, or API-key lookup existed.
+  Phase 5 later adds these through the existing pipeline.
 - In the repository's current state (no launch artifact and no activation),
   preparation fails closed in normal production; the page therefore exposes the
   blocked state and the local fallback. The complete prepare/approve/send path
@@ -430,15 +453,39 @@ safety suite enforces this by scanning the source.
   explicit question. Notes and other material metadata are excluded. All AI
   prompts, outputs, approvals, answers, scores, references, and request state
   remain in memory and are not added to Dexie or backups.
-- **Provider:** real dispatch remains blocked and structurally unavailable;
-  Phase 3 did not change provider eligibility, region restrictions, gates,
-  activation, server AI production code, provider configuration, or credentials.
+- **Provider at the time:** real dispatch was unavailable; Phase 3 did not
+  change provider eligibility, region restrictions, gates, activation, server
+  AI production code, provider configuration, or credentials. Phase 5 is
+  documented separately below.
 - **Verification:** final commands and outcomes are recorded in
   `docs/TEST_PLAN.md` and `docs/AI_LAUNCH_CHECKLIST.md` after the final run.
 - **Rollback:** remove the quiz and Q&A routes/components and Phase 3 client
   additions without a data migration; keep Phase 1 and Phase 2 untouched.
 - **Acceptance checkpoint:** the owner reviews the final diff and verification
   report before any further work.
+
+### Phase 5 — Gemini integration (implemented in the current working tree)
+
+- **Scope:** use the existing provider interface and prepare/review/approve/send
+  pipeline for summary, quiz, and single-turn Q&A; add optional first-launch
+  setup and Settings key management; protect the local server key with Windows
+  DPAPI.
+- **Connection test:** only after the user presses “Save key and test
+  connection”; it checks configured model metadata and sends no study material.
+- **Provider API status:** Google's current Interactions API documentation
+  identifies the API as Beta and warns that features and schemas may change.
+  Model-metadata success does not test the Interactions endpoint or guarantee
+  project-level generation access; keep model/response handling under review.
+- **Dispatch:** requires `STUDY_HUB_AI_ENABLED=1`, a saved key, successful model
+  access checks, complete/fresh gates, explicit local activation, and fresh
+  approval of the exact payload. It uses one provider attempt without retry.
+- **Persistence:** no API key in browser storage, no AI history in IndexedDB or
+  backups; local encrypted credential and gate/budget state live under the
+  git-ignored `.study-hub/` directory.
+- **Verification:** automated provider tests use injected fakes only; live
+  requests are not claimed unless separately run with the owner's local key.
+- **Approval checkpoint:** report verification and limitations, then wait for
+  owner acceptance before committing or starting additional work.
 
 ### Deferred
 
@@ -457,27 +504,23 @@ summary workflow is stable and approved.
 4. `exposureAcknowledged` is `true`.
 5. `modelsConfirmed` is `true` and the confirmed model is available to the
    project.
-6. `region` permits use (not `eea`, `switzerland`, or `united-kingdom`).
+6. `region` is supported; EEA, Switzerland, and UK selections require Paid
+   Services and confirmed active billing.
 7. `termsEligibility.status` is `established`, with a complete determination
    whose `termsCheckedAt` is within the staleness window (30 days).
-8. An **explicit runtime activation step** is completed, which is separate from
-   the API key and from any environment variable alone.
+8. The owner has confirmed the age requirement and the limit/disclosure
+   declarations are complete.
+9. An **explicit runtime activation step** follows a successful connection
+   check. It is separate from the API key and environment variable.
 
-Requirements 1–7 are server-side checks. The activation step in requirement 8
-is a deliberate, separate action by the owner, recorded outside the artifact.
+The server checks the persisted gates and activation state on every send.
+Activation is written to a git-ignored local runtime-state file.
 
-**Phase 1 status.** Phase 1 implements the server-side checks for
-requirements 1, 3–7 and the activation step for requirement 8, but
-requirement 2 is **not implemented at all**: no module reads a Gemini API key,
-no module reads an endpoint URL, and no module contains an HTTP client. The
-mounted provider is permanently unconfigured, so requirement 2 can never be
-satisfied by any configuration, environment file, or sample artifact.
-
-**Phase 2 status.** The summary UI adds no provider path. It does not read a
-key, contain an endpoint or HTTP client, or change the activation reader; it
-uses the same Phase 1 `prepare`/`send` pipeline. A real provider request remains
-impossible, and every automated path that reaches a provider uses a fake
-provider or an injected proxy stub.
+**Phase 1 / Phase 5 status.** The server implements the provider interface,
+DPAPI-backed key store, Gemini model metadata check, and Interactions API
+client. Configuration routes are loopback/Origin protected. The provider call
+is available only after the separate runtime gates and explicit user approval.
+Automated tests use injected fakes and never contact Google.
 
 ### 6.2 Rules
 
@@ -491,10 +534,10 @@ provider or an injected proxy stub.
 - **A test fixture can never enable dispatch.** The gate evaluator is a pure
   function of the artifact; tests inject a fake provider and never exercise a
   real network path.
-- **Phase 2 completion does not enable dispatch.** The gate evaluation is
-  identical in Phase 1 and Phase 2.
-- **Unresolved eligibility blocks dispatch regardless of activation settings**,
-  including a paid account, a populated artifact, and a completed activation.
+- **Phase 2 completion does not enable dispatch.** Only explicit local setup
+  and every runtime gate can enable it.
+- The owner-reported terms clarification applies only to the intended
+  single-user coursework use; it does not establish broader Google approval.
 
 ## 7. Launch-gate artifact
 
@@ -524,26 +567,28 @@ as, a user acknowledgement or a user declaration.
 Gate **C** is an automated verification gate (Category 1) and has no artifact
 field by design.
 
-### 7.2 Artifact schema (version 1)
+### 7.2 Artifact schema (version 2)
 
 Required fields:
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `schemaVersion` | `1` | Exact value; unknown versions are rejected. |
+| `schemaVersion` | `2` | Exact value; unknown versions are rejected. |
 | `region` | `non-eea-uk-ch` \| `eea` \| `switzerland` \| `united-kingdom` | Drives `region_not_permitted`. |
 | `tier` | `free` \| `paid` | Declared tier; drives the data-handling disclosures shown. |
 | `modelsConfirmed` | boolean | `true` only after confirming the model in the actual project. |
 | `limitsConfirmed` | boolean | `true` only after reading the project's real limits in AI Studio. |
+| `ageConfirmed` | boolean | Owner confirms the provider's 18+ requirement. |
+| `billingConfirmed` | boolean | Required for a declared paid tier or restricted region. |
 | `effectiveDailyCap` | positive integer | **The single source of truth** for the local daily request ceiling. |
 | `exposureAcknowledged` | boolean | Gate G. |
 | `termsEligibility` | object | Gate F; see below. |
 | `termsEligibility.status` | `unresolved` \| `established` | `established` requires every sub-field below. |
 | `termsEligibility.determinedAt` | ISO timestamp | Required when `established`. |
 | `termsEligibility.termsCheckedAt` | ISO timestamp | Required when `established`; drives staleness. |
-| `termsEligibility.basis` | `authoritative_source` \| `owner_decision` | How the determination was reached. |
-| `termsEligibility.sourceUrl` | string | The official document relied on. |
-| `termsEligibility.sourceQuote` | string | Verbatim quote from that document. |
+| `termsEligibility.basis` | `authoritative_source` \| `owner_decision` \| `owner_reported_confirmation` | How the determination was reached. |
+| `termsEligibility.sourceUrl` | string | Official terms checked; it is not the owner's unprovided communication. |
+| `termsEligibility.sourceQuote` | string or null | Null for the owner-reported confirmation; no unseen quote is invented. |
 | `termsEligibility.intendedUse` | string | The use being authorized. |
 
 Audit-only fields (recorded, tolerated, never load-bearing):
@@ -564,6 +609,7 @@ Audit-only fields (recorded, tolerated, never load-bearing):
 | `effectiveDailyCap` is missing or not a positive integer | `gates_invalid` |
 | The Host header is absent, malformed, not a loopback host, or names another port | `forbidden_origin` |
 | A mutating request has no Origin, or the Origin names another host or port | `forbidden_origin` |
+| The request peer or actual Vite listener is not loopback | `forbidden_origin` |
 
 Every failure is a **fail-closed** outcome with a documented reason. No failure
 path degrades into a permissive default.
@@ -805,10 +851,11 @@ are rejected with a deterministic reason before dispatch.
 
 ## 11. Architecture
 
-- **Single origin, loopback only.** The proxy is served from the same origin
-  as the application and binds `127.0.0.1`. It is never exposed to a network.
-  Both the Host header and, for mutating requests, the Origin header are
-  checked before a token is created or a payload is stored.
+- **Single origin, loopback only.** Vite defaults to `127.0.0.1`. AI routes
+  also require the actual listener and socket peer to be loopback, so an
+  overridden non-loopback Vite host cannot expose the middleware to network
+  clients. Host and, for mutating requests, Origin are validated before a
+  token or payload is created.
 - **Both Vite lifecycles.** One Node-side plugin registers **both**
   `configureServer` (dev) and `configurePreviewServer` (preview). The dev
   server calls only `configureServer`; the preview server calls only
@@ -840,13 +887,15 @@ are rejected with a deterministic reason before dispatch.
 | `server/ai/gates.ts` | Launch artifact parsing and the pure gate evaluator. |
 | `server/ai/budget.ts` | The local usage counter and its fail-closed states. |
 | `server/ai/payloadStore.ts` | Token, digest, and single-use payload consumption. |
-| `server/ai/requestValidation.ts` | Host/Origin checks, body reading, input validation. |
-| `server/ai/provider.ts` | The provider interface and the permanently unconfigured provider. |
-| `server/ai/activation.ts` | The activation interface and the permanently disabled reader. |
+| `server/ai/requestValidation.ts` | Loopback address and Host/Origin checks, body reading, input validation. |
+| `server/ai/provider.ts` | The Gemini provider interface, metadata check, and one-shot Interactions API client. |
+| `server/ai/secretStore.ts`, `configuration.ts` | DPAPI-protected server-only key storage and local setup lifecycle. |
+| `server/ai/activation.ts` | Explicit activation backed by local configuration and key presence. |
 | `server/ai/pipeline.ts` | The ordered, fail-closed request pipeline. |
 | `server/ai/handler.ts` | The HTTP surface and the structured request log. |
 | `server/ai/logging.ts` | The single-line JSON request log. |
-| `server/ai/plugin.ts` | The Vite plugin for both lifecycles. |
+| `server/ai/plugin.ts` | The loopback Vite plugin for dev and preview lifecycles. |
+| `src/features/ai/AiConfigurationPanel.tsx`, `aiConfigurationClient.ts` | Optional first-launch and Settings key configuration; browser code never stores or forwards the key to Google. |
 | `server/ai/testing/fakeProvider.ts` | The test-only provider double. **Never imported by production code.** |
 
 ### 11.2 Browser summary modules (Phase 2, as implemented)
@@ -881,16 +930,19 @@ map". Each row is labelled **automated test** or **manual verification**. The
 Phase 1, Phase 2, and Phase 3 rows are implemented; only checks actually run
 are recorded as verified.
 
-## 13. Unresolved conditions
+## 13. Remaining checks and limitations
 
-These remain open and continue to block real provider requests:
+These are not a claim that the owner-reported intended-use clarification is
+false; they are remaining independent technical, account, and data-handling
+checks:
 
-1. **Provider eligibility is unresolved.** No authoritative Google source
-   distinguishes a personal study tool from "consumer use". Real dispatch
-   stays blocked.
-2. **Regional restriction.** EEA, Switzerland, and the United Kingdom require
-   Paid Services; paid tier is out of scope, so the feature is unavailable
-   there.
+1. **Written confirmation is unavailable to this repository.** The owner
+   reports Google's confirmation for the intended use. Do not claim any broader
+   approval or quote unseen correspondence.
+2. **Regional terms.** Paid Services are required when making API Clients
+   available to users in the EEA, Switzerland, and the United Kingdom. The
+   runtime requires paid tier and active billing for those selected regions.
+   The owner selects their own region; this record does not infer it.
 3. **Free-tier data handling.** Product-improvement use, possible human
    review, and no published retention window. Mitigated, not resolved.
 4. **Abuse monitoring.** 55-day retention independent of `store`, with possible
@@ -903,21 +955,27 @@ These remain open and continue to block real provider requests:
 7. **Model availability is provisional.** Public catalogue presence does not
    guarantee project availability or quota.
 
-Phase 3 does not resolve any condition above. Its quiz and Q&A surfaces add no
-provider client, key lookup, endpoint, or activation path, so no real provider
-request is possible.
+Guided recall remains local. The owner must use the local setup UI to confirm
+their actual region, tier, age, model access, billing (if required), limits,
+and disclosures. Real API tests are not claimed unless performed with the key
+entered locally.
 
 ## 14. Sources
 
-All sources below are official Google documentation, read on **2026-10-22**.
-No API call was made, no key was created, and no endpoint was contacted.
+The Gemini API terms, Interactions API, structured-output documentation, and
+model catalogue were checked on **2026-11-02**. These documentation checks did
+not use an API key and did not contact a Gemini endpoint. The owner's reported
+Google communication was not available for inspection.
 
 | Topic | Source |
 | --- | --- |
 | Additional Terms, use restrictions, unpaid/paid data use | <https://ai.google.dev/terms> (effective 2026-03-23, last updated 2026-04-28) |
+| Gemini API and AI Studio available regions | <https://ai.google.dev/gemini-api/docs/available-regions> |
 | Abuse monitoring, 55-day retention, manual review | <https://ai.google.dev/gemini-api/docs/usage-policies.md.txt> |
 | Log storage and retention, human reviewers | <https://ai.google.dev/gemini-api/docs/logs-policy.md.txt> |
 | Interactions API, `store`, `previous_interaction_id` | <https://ai.google.dev/gemini-api/docs/interactions.md.txt> |
+| Interactions API overview and response shape | <https://ai.google.dev/gemini-api/docs/interactions> |
+| Structured output `response_format` | <https://ai.google.dev/gemini-api/docs/structured-output> |
 | Model catalogue | <https://ai.google.dev/gemini-api/docs/models.md.txt> |
 | `gemini-3.8-flash` details | <https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash.md.txt> |
 | `gemini-3.5-flash-lite` details | <https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite.md.txt> |

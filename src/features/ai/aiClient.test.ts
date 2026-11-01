@@ -19,7 +19,7 @@ const payload: AiProviderPayload = {
     max_output_tokens: 1024,
   },
   response_format: {
-    type: "json_schema",
+    type: "text",
     mime_type: "application/json",
   },
   store: false,

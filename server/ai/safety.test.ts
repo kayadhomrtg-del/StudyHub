@@ -61,7 +61,7 @@ async function collectTypeScriptFiles(directory: string): Promise<string[]> {
       files.push(...(await collectTypeScriptFiles(path)));
       continue;
     }
-    if (entry.name.endsWith(".ts")) {
+    if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
       files.push(path);
     }
   }
@@ -84,38 +84,28 @@ async function readSources(): Promise<
 
 function isProductionModule(relativePath: string): boolean {
   return (
-    !relativePath.endsWith(".test.ts") &&
+    !relativePath.includes(".test.") &&
     !relativePath.startsWith("testing/") &&
     relativePath !== "testing/fakeProvider.ts"
   );
 }
 
-describe("no external request is possible", () => {
-  it("keeps every outbound client out of the production modules", async () => {
+describe("provider boundary and secret safety", () => {
+  it("keeps the only external client in the server-only Gemini provider", async () => {
     const sources = await readSources();
     const production = sources.filter((source) =>
       isProductionModule(source.relativePath),
     );
 
     expect(production.length).toBeGreaterThan(0);
-
-    for (const source of production) {
-      expect(source.text, `${source.relativePath} must not call fetch`).not.toMatch(
-        /\bfetch\s*\(/,
-      );
-      expect(
-        source.text,
-        `${source.relativePath} must not import node:https`,
-      ).not.toContain("node:https");
-      expect(
-        source.text,
-        `${source.relativePath} must not contain an https URL`,
-      ).not.toContain("https://");
-      expect(
-        source.text,
-        `${source.relativePath} must not contain a non-loopback http URL`,
-      ).not.toMatch(/http:\/\/(?!127\.0\.0\.1|localhost)/);
-    }
+    const clients = production
+      .filter((source) => /\b(?:fetch|this\.fetcher)\s*\(/.test(source.text))
+      .map((source) => source.relativePath);
+    expect(clients).toEqual(["provider.ts"]);
+    expect(
+      production.filter((source) => source.text.includes(PROVIDER_HOST))
+        .map((source) => source.relativePath),
+    ).toEqual(["provider.ts"]);
   });
 
   it("never imports the test-only provider from production code", async () => {
@@ -131,29 +121,34 @@ describe("no external request is possible", () => {
     }
   });
 
-  it("contains no provider endpoint and no credential names", async () => {
-    const sources = await readSources();
+  it("keeps the provider endpoint and credential header out of browser code", async () => {
+    const sourceDirectory = resolve(SERVER_DIRECTORY, "../../src");
+    const files = await collectTypeScriptFiles(sourceDirectory);
+    const sources = await Promise.all(files.map((file) => readFile(file, "utf8")));
 
     for (const source of sources) {
-      expect(
-        source.text,
-        `${source.relativePath} must not name a provider endpoint`,
-      ).not.toContain(PROVIDER_HOST);
-      expect(
-        source.text,
-        `${source.relativePath} must not name a provider endpoint`,
-      ).not.toContain(GOOGLE_APIS_HOST);
-
+      expect(source).not.toContain(PROVIDER_HOST);
+      expect(source).not.toContain(GOOGLE_APIS_HOST);
       for (const marker of CREDENTIAL_MARKERS) {
-        expect(
-          source.text,
-          `${source.relativePath} must not name a credential`,
-        ).not.toContain(marker);
+        expect(source).not.toContain(marker);
       }
     }
   });
 
-  it("ships an inert production provider", async () => {
+  it("keeps the provider endpoint and credential references limited to the provider", async () => {
+    const sources = await readSources();
+
+    for (const source of sources.filter((candidate) =>
+      isProductionModule(candidate.relativePath),
+    )) {
+      if (source.relativePath !== "provider.ts") {
+        expect(source.text, source.relativePath).not.toContain(PROVIDER_HOST);
+        expect(source.text, source.relativePath).not.toContain(GOOGLE_APIS_HOST);
+      }
+    }
+  });
+
+  it("retains an inert provider test double", async () => {
     expect(unconfiguredProvider.configured).toBe(false);
     expect(unconfiguredProvider.name).toBe("unconfigured");
 
@@ -182,11 +177,13 @@ describe("no external request is possible", () => {
     await writeFile(
       join(root, ".study-hub", "ai-launch-gate.json"),
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         region: "non-eea-uk-ch",
         tier: "free",
         modelsConfirmed: true,
         limitsConfirmed: true,
+        ageConfirmed: true,
+        billingConfirmed: false,
         effectiveDailyCap: 20,
         exposureAcknowledged: true,
         termsEligibility: {

@@ -5,7 +5,8 @@ notes, tasks, study sessions, and backups. The application uses React,
 TypeScript, Vite, and Dexie/IndexedDB. It has no backend, account system, cloud
 sync, analytics, or telemetry. Core study data stays on this device; the
 optional AI flow sends selected extracted text only to its same-machine
-loopback proxy, which cannot reach an external provider.
+loopback proxy. Gemini is accessed only through the local server after
+explicit configuration and per-request approval.
 
 ## Features
 
@@ -30,13 +31,13 @@ loopback proxy, which cannot reach an external provider.
   in a supporting browser. IndexedDB content remains browser-local and is not
   part of the service worker cache.
 
-## Optional AI assistance (summary, quiz, and Q&A — no real dispatch)
+## Optional Gemini AI assistance (summary, quiz, and Q&A)
 
 The optional AI feature is designed in `docs/AI_PLAN.md` as an optional,
 disabled-by-default, loopback-only proxy for a single user on personal study
 material. The application is fully usable without any of it.
 
-**Phases 1, 2, 3, and 4 are implemented.** Phase 1 added the local proxy
+**Phases 1–5 are implemented in the current working tree.** Phase 1 added the local proxy
 skeleton, request validation, the launch-gate evaluator, the local daily budget,
 and the error taxonomy in `server/ai/`, mounted by a Vite plugin in both the
 development and the preview server. Phase 2 adds a summary surface reached from
@@ -56,17 +57,21 @@ explicit and never inferred from elapsed time or navigation. This workflow
 makes no AI or external request and does not change the database schema or
 backup formats.
 
-**There is no way to reach a provider.** The proxy contains no HTTP client,
-reads no API key, and no module knows a provider endpoint; the provider it
-mounts is permanently unconfigured, so a real upstream request is impossible
-rather than merely disabled. Real provider dispatch also stays blocked because
-provider eligibility is unresolved; the launch gates are recorded in
-`docs/AI_LAUNCH_CHECKLIST.md`. Preparation fails closed in normal production.
-Tests use a fake provider or an injected proxy stub and never contact Google.
+The Gemini provider uses the existing shared request pipeline. Optional
+first-launch setup and Settings store the API key only on the local Windows
+server using DPAPI; the browser never stores it or sends it directly to Google.
+The first-launch panel does not block navigation. To enable configuration and
+generation routes, start StudyHub with `STUDY_HUB_AI_ENABLED=1`; the flag alone
+does not activate provider requests. Dispatch additionally requires successful
+model checks, owner confirmations, active gates, and fresh approval of the
+exact payload. Local fallbacks continue working without a key. Automated tests
+use mocked providers and never contact Google.
 
-The proxy routes are always mounted. They answer `not_configured` when the
-proxy is disabled or unconfigured, and fail closed before dispatch when the
-launch gates or activation do not pass.
+The owner reports that Google confirmed the intended personal, single-user
+coursework use. No written response was available in the project files, so
+this is recorded as a limited owner report, not independent evidence or
+broader Google approval. The official terms remain documented. See
+`docs/AI_PLAN.md` and `docs/AI_LAUNCH_CHECKLIST.md`.
 
 ## Screenshots
 
@@ -108,6 +113,14 @@ Run these from the project directory:
 
 ```powershell
 npm ci
+npm run dev
+```
+
+Gemini setup and generation are disabled by default. To enable the optional
+local AI routes for a PowerShell session, set the flag before starting Vite:
+
+```powershell
+$env:STUDY_HUB_AI_ENABLED = "1"
 npm run dev
 ```
 
@@ -243,20 +256,20 @@ before publishing.
 
 ### Optional AI feature and provider-side handling
 
-The optional AI proxy described in `docs/AI_PLAN.md` is off by default. The
-Phase 1 proxy and Phase 2/3 AI surfaces are implemented; real provider dispatch
-is not. It is a local, loopback-only service for one user, and it changes three
-separate things that must not be confused:
+The optional AI proxy described in `docs/AI_PLAN.md` is off by default. Phase
+1–5 are implemented in the current working tree. It is a local, loopback-only
+service for one user, and it changes three separate things that must not be
+confused:
 
 - **StudyHub's own storage.** AI prompts, outputs, and history are never
   written to IndexedDB, so nothing AI-related appears in a backup. "No AI
   persistence" refers only to StudyHub's own database and application storage.
-  The proxy keeps two plain local files under the git-ignored `.study-hub/`
-  directory — the launch artifact and the local usage counter — and nothing
-  else.
-- **Provider-side handling.** If a provider request is ever authorized, the
-  provider's own terms apply to the submitted content: provider retention
-  windows, abuse monitoring independent of the request's storage flag, possible
+  The proxy stores the encrypted key, launch artifact, activation state, and
+  local usage counter under the git-ignored `.study-hub/` directory.
+- **Provider-side handling.** A provider request sends the reviewed material
+  text to Google under the configured project and tier. The provider's terms
+  apply to submitted content: provider retention windows, abuse monitoring
+  independent of the request's storage flag, possible
   review by authorised provider personnel, and — on a free tier — use of
   submitted content to improve the provider's products, where human reviewers
   may read and annotate it. These are disclosed from current official
@@ -265,10 +278,10 @@ separate things that must not be confused:
   and requires a fresh, explicit approval. A payload digest is an integrity
   check only and is never proof of approval or authorization.
 
-Because provider eligibility for personal study use is not established by any
-authoritative provider documentation, real provider dispatch remains blocked.
-The checklist in `docs/AI_LAUNCH_CHECKLIST.md` records the unresolved
-condition explicitly rather than assuming it away.
+The owner reports that Google confirmed the intended personal coursework use.
+No written response was available to this repository; do not infer broader
+approval or quote unseen correspondence. The official terms are recorded
+without alteration. See `docs/AI_LAUNCH_CHECKLIST.md`.
 
 ## Run your own copy
 

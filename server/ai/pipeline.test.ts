@@ -25,11 +25,13 @@ const DISABLED: AiActivationReader = {
 
 function artifact(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     region: "non-eea-uk-ch",
     tier: "free",
     modelsConfirmed: true,
     limitsConfirmed: true,
+    ageConfirmed: true,
+    billingConfirmed: false,
     effectiveDailyCap: 20,
     exposureAcknowledged: true,
     termsEligibility: {

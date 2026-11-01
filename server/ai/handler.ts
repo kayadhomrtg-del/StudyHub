@@ -1,16 +1,18 @@
 /**
  * The HTTP surface of the AI proxy.
  *
- * The routes are always mounted, but they answer with `not_configured` unless
- * `STUDY_HUB_AI_ENABLED=1`. The order of the checks is fixed:
+ * The setup routes remain available while generation is disabled. Generation
+ * routes answer with `not_configured` unless `STUDY_HUB_AI_ENABLED=1`. The
+ * order of the checks is fixed:
  *
- * route and method -> loopback Host -> Origin -> enabled -> pipeline.
+ * route and method -> loopback listener and peer -> Host -> Origin -> enabled
+ * -> pipeline.
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import {
-  disabledActivationReader,
+  LocalActivationReader,
   type AiActivationReader,
 } from "./activation";
 import { AiBudget, nextLocalDayReset, resolveUsageFilePath } from "./budget";
@@ -22,6 +24,7 @@ import {
   type AiFeature,
   type AiFeatureConfig,
 } from "./config";
+import { AiConfigurationService } from "./configuration";
 import {
   evaluateGates,
   readGateArtifact,
@@ -39,14 +42,19 @@ import {
   runSendPipeline,
   type AiPipelineDependencies,
 } from "./pipeline";
-import { unconfiguredProvider, type AiProvider } from "./provider";
+import { GeminiProvider, type AiProvider } from "./provider";
+import { AiSecretStore, resolveSecretFilePath } from "./secretStore";
 import {
   readRequestBody,
+  validateLoopbackAddress,
   validateHostHeader,
   validateOriginHeader,
 } from "./requestValidation";
 import {
   AI_ERROR_STATUS,
+  AI_CONFIGURATION_DISMISS_ROUTE,
+  AI_CONFIGURATION_REMOVE_ROUTE,
+  AI_CONFIGURATION_ROUTE,
   AI_PREPARE_ROUTE,
   AI_ROUTE_PREFIX,
   AI_SEND_ROUTE,
@@ -60,6 +68,8 @@ export interface AiHandlerOptions {
   /** Project root; the launch artifact and usage counter live beneath it. */
   root: string;
   provider?: AiProvider;
+  configuration?: AiConfigurationService;
+  secretStore?: AiSecretStore;
   activation?: AiActivationReader;
   budget?: AiBudget;
   payloadStore?: AiPayloadStore;
@@ -71,6 +81,8 @@ export interface AiHandlerOptions {
   logStream?: AiLogStream;
   /** The port this server is listening on, when it is known. */
   serverPort?: () => number | null;
+  /** The address this server is listening on, when it is known. */
+  serverAddress?: () => string | null;
 }
 
 interface RouteDefinition {
@@ -80,6 +92,10 @@ interface RouteDefinition {
 
 const ROUTES: readonly RouteDefinition[] = [
   { method: "GET", path: AI_STATUS_ROUTE },
+  { method: "GET", path: AI_CONFIGURATION_ROUTE },
+  { method: "POST", path: AI_CONFIGURATION_ROUTE },
+  { method: "POST", path: AI_CONFIGURATION_DISMISS_ROUTE },
+  { method: "POST", path: AI_CONFIGURATION_REMOVE_ROUTE },
   { method: "POST", path: AI_PREPARE_ROUTE },
   { method: "POST", path: AI_SEND_ROUTE },
 ];
@@ -97,9 +113,8 @@ function sendJson(res: ServerResponse, status: number, body: unknown): number {
 /**
  * Creates the AI request handler.
  *
- * The default dependencies are the production ones: the unconfigured
- * provider and the permanently disabled activation reader. Tests may inject
- * their own, but the mounted production route never uses a fake provider.
+ * The default dependencies use the Windows-protected server-side key store
+ * and Gemini client. Tests may inject in-process fakes.
  */
 export function createAiHandler(
   options: AiHandlerOptions,
@@ -107,8 +122,15 @@ export function createAiHandler(
   const now = options.now ?? (() => new Date());
   const env = options.env ?? process.env;
   const logStream = options.logStream ?? process.stdout;
-  const provider = options.provider ?? unconfiguredProvider;
-  const activation = options.activation ?? disabledActivationReader;
+  const secretStore =
+    options.secretStore ??
+    new AiSecretStore(resolveSecretFilePath(options.root));
+  const provider = options.provider ?? new GeminiProvider(secretStore);
+  const configuration =
+    options.configuration ??
+    new AiConfigurationService(options.root, provider, secretStore, now);
+  const activation =
+    options.activation ?? new LocalActivationReader(configuration, secretStore);
   const payloadStore = options.payloadStore ?? new AiPayloadStore();
   const gateArtifactPath =
     options.gateArtifactPath ?? resolveGateArtifactPath(options.root);
@@ -117,6 +139,7 @@ export function createAiHandler(
   const budget = options.budget ?? new AiBudget(usageFilePath, now);
   const featureConfigs = options.featureConfigs ?? AI_FEATURE_CONFIGS;
   const serverPort = options.serverPort ?? (() => null);
+  const serverAddress = options.serverAddress;
 
   const deps: AiPipelineDependencies = {
     provider,
@@ -149,7 +172,9 @@ export function createAiHandler(
       env,
       logStream,
       serverPort,
+      serverAddress,
       now,
+      configuration,
     }).catch(() => {
       if (!res.headersSent) {
         sendJson(res, 500, {
@@ -174,7 +199,9 @@ interface HandleContext {
   env: NodeJS.ProcessEnv;
   logStream: AiLogStream;
   serverPort: () => number | null;
+  serverAddress?: () => string | null;
   now: () => Date;
+  configuration: AiConfigurationService;
 }
 
 async function handleAiRequest(context: HandleContext): Promise<void> {
@@ -226,20 +253,38 @@ async function handleAiRequest(context: HandleContext): Promise<void> {
     writeAiRequestLog(context.logStream, entry);
   };
 
-  const route = ROUTES.find((candidate) => candidate.path === path);
+  const route = ROUTES.find(
+    (candidate) => candidate.path === path && candidate.method === method,
+  );
   if (!route) {
-    respondError("invalid_request", "Unknown AI route.", false, { status: 404 });
+    const status = ROUTES.some((candidate) => candidate.path === path) ? 405 : 404;
+    respondError(
+      "invalid_request",
+      status === 405
+        ? `The ${path} route does not accept ${method} requests.`
+        : "Unknown AI route.",
+      false,
+      { status },
+    );
     log();
     return;
   }
 
-  if (route.method !== method) {
-    respondError(
-      "invalid_request",
-      `The ${path} route only accepts ${route.method} requests.`,
-      false,
-      { status: 405 },
+  if (context.serverAddress) {
+    const listener = validateLoopbackAddress(
+      context.serverAddress() ?? undefined,
+      "listener",
     );
+    if (!listener.ok) {
+      respondError("forbidden_origin", listener.reason);
+      log();
+      return;
+    }
+  }
+
+  const peer = validateLoopbackAddress(req.socket.remoteAddress, "request");
+  if (!peer.ok) {
+    respondError("forbidden_origin", peer.reason);
     log();
     return;
   }
@@ -261,6 +306,78 @@ async function handleAiRequest(context: HandleContext): Promise<void> {
     respondError("forbidden_origin", origin.reason);
     log();
     return;
+  }
+
+  if (
+    path === AI_CONFIGURATION_ROUTE ||
+    path === AI_CONFIGURATION_DISMISS_ROUTE ||
+    path === AI_CONFIGURATION_REMOVE_ROUTE
+  ) {
+    if (path === AI_CONFIGURATION_ROUTE && method === "GET") {
+      respond(200, { ok: true, configuration: await context.configuration.status() });
+      log();
+      return;
+    }
+
+    if (path === AI_CONFIGURATION_ROUTE && method === "POST") {
+      const body = await readRequestBody(req, AI_MAX_REQUEST_BYTES);
+      bytesIn = body.bytes;
+      if (body.tooLarge || body.parseError || body.value === undefined) {
+        respondError(
+          body.tooLarge ? "payload_too_large" : "invalid_request",
+          "The AI configuration request is invalid.",
+        );
+        log();
+        return;
+      }
+      const result =
+        await context.configuration.activateFromExplicitConnectionTest(body.value);
+      gateVerdict = result.ok ? "pass" : "blocked";
+      respond(
+        result.ok ? 200 : 400,
+        result.ok
+          ? {
+              ok: true,
+              configuration: result.status,
+              models: result.models,
+            }
+          : {
+              ok: false,
+              configuration: result.status,
+              message: result.message,
+            },
+      );
+      log();
+      return;
+    }
+
+    if (method === "POST" && path === AI_CONFIGURATION_DISMISS_ROUTE) {
+      const body = await readRequestBody(req, 64);
+      bytesIn = body.bytes;
+      if (body.tooLarge || body.parseError || body.value !== undefined) {
+        respondError("invalid_request", "The AI setup dismissal request is invalid.");
+        log();
+        return;
+      }
+      const configuration = await context.configuration.continueWithoutAi();
+      respond(200, { ok: true, configuration });
+      log();
+      return;
+    }
+
+    if (method === "POST" && path === AI_CONFIGURATION_REMOVE_ROUTE) {
+      const body = await readRequestBody(req, 64);
+      bytesIn = body.bytes;
+      if (body.tooLarge || body.parseError || body.value !== undefined) {
+        respondError("invalid_request", "The AI key removal request is invalid.");
+        log();
+        return;
+      }
+      const configuration = await context.configuration.removeKey();
+      respond(200, { ok: true, configuration });
+      log();
+      return;
+    }
   }
 
   if (!isAiEnabled(context.env)) {
@@ -335,6 +452,7 @@ async function respondWithStatus(
   respond: (status: number, body: unknown) => void,
 ): Promise<AiGateVerdictLabel> {
   const { deps, now } = context;
+  const configuration = await context.configuration.status();
 
   const read = await readGateArtifact(deps.gateArtifactPath);
   const verdict: AiGateVerdict =
@@ -354,11 +472,16 @@ async function respondWithStatus(
   respond(200, {
     ok: true,
     enabled: true,
-    phase: 1,
+    phase: 5,
     provider: deps.provider.name,
-    providerConfigured: deps.provider.configured,
+    providerConfigured: configuration.hasKey,
     dispatchPossible:
-      verdict.ok && activation.activated && deps.provider.configured,
+      verdict.ok && activation.activated && configuration.hasKey,
+    configuration: {
+      hasKey: configuration.hasKey,
+      setupSkipped: configuration.setupSkipped,
+      activated: configuration.activated,
+    },
     gates: {
       verdict: verdict.ok ? "pass" : "blocked",
       code: verdict.ok ? null : verdict.code,

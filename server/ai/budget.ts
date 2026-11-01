@@ -103,6 +103,23 @@ export class AiBudget {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
+  /** Initializes a fresh counter without replacing any existing state. */
+  async initialize(): Promise<void> {
+    await mkdir(dirname(this.filePath), { recursive: true });
+    const initial: AiUsageState = {
+      schemaVersion: 1,
+      windowStart: localDateKey(this.now()),
+      used: 0,
+      updatedAt: this.now().toISOString(),
+    };
+    try {
+      await writeFile(this.filePath, JSON.stringify(initial), { flag: "wx" });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") return;
+      throw new Error("The local AI usage counter could not be initialized.");
+    }
+  }
+
   /**
    * Reads the current usage state. The returned `status` decides whether a
    * dispatch may proceed: only `ok` allows it.

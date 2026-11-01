@@ -2,11 +2,12 @@
  * Request validation for the AI proxy.
  *
  * Everything here runs before a payload is stored and before a provider call
- * is attempted. Host and Origin are checked first, so a request that did not
- * come from the local application can never create a token or store a payload.
+ * is attempted. The handler also validates the socket peer and listener
+ * addresses before applying the Host and Origin checks.
  */
 
 import type { IncomingMessage } from "node:http";
+import { isIP } from "node:net";
 
 import {
   AI_FEATURE_CONFIGS,
@@ -44,6 +45,39 @@ export type AiValidationResult<T> =
 const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "localhost", "::1"]);
 
 const THINKING_LEVELS: readonly AiThinkingLevel[] = ["low", "medium", "high"];
+
+function isLoopbackAddress(address: string | undefined): boolean {
+  if (!address) return false;
+  const normalized = address.toLowerCase();
+
+  if (isIP(normalized) === 4) {
+    return normalized.startsWith("127.");
+  }
+
+  if (isIP(normalized) === 6) {
+    return (
+      normalized === "::1" ||
+      normalized === "0:0:0:0:0:0:0:1" ||
+      /^::ffff:127(?:\.\d{1,3}){3}$/.test(normalized)
+    );
+  }
+
+  return false;
+}
+
+export function validateLoopbackAddress(
+  address: string | undefined,
+  source: "request" | "listener",
+): AiCheckResult {
+  if (isLoopbackAddress(address)) return { ok: true };
+
+  return {
+    ok: false,
+    reason: source === "request"
+      ? "The request did not originate from a loopback address."
+      : "The AI proxy listener is not bound to a loopback address.",
+  };
+}
 
 function parseAuthority(
   value: string,

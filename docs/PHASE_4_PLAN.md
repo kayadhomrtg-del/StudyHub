@@ -32,9 +32,16 @@ optional actual duration.
 The observed gap is the transition from **a scheduled session** to **a
 focused learning activity**. A planner session can open its linked material,
 but the current planner does not provide a session workspace or an active
-recall loop. The app's current AI surfaces do not fill that gap in production:
-provider dispatch is blocked, and quiz/Q&A fallbacks show excerpts rather than
-questions or answers.
+recall loop. At the time this Phase 4 plan was written, the AI surfaces did not fill that
+gap in production: provider dispatch was unavailable, and quiz/Q&A fallbacks
+showed excerpts rather than questions or answers. Phase 5 later connected the
+AI surfaces to the Gemini provider; guided recall remains separate and local.
+
+**Owner-reported Google clarification (2026-11-02):** the owner reports that
+Google confirmed the intended personal coursework use. No written response
+was available in the project files. This is recorded narrowly and does not
+claim broader approval or change the official terms. The clarification does
+not change the local-only Phase 4 implementation.
 
 A local guided review is therefore more valuable and lower-risk than adding
 another AI surface, changing provider configuration, or persisting generated
@@ -216,6 +223,6 @@ Phase 4 should be accepted only if:
 
 The owner explicitly authorized full Phase 4 implementation and resolved the
 product defaults that differ from the original proposal. Implementation is
-complete pending final owner review and acceptance. Provider eligibility
-remains unresolved; no Phase 4 step enables, simulates, or requests real
-provider dispatch.
+complete pending final owner review and acceptance. The official terms
+classification for the owner's intended personal use remains unresolved; no
+Phase 4 step enables, simulates, or requests real provider dispatch.

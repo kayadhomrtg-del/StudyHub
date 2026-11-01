@@ -167,6 +167,9 @@ changes. No file was deleted.
   session title in the note title.
 - The screen-reader and full manual contrast/focus audit remains outstanding.
 - Real provider dispatch remains structurally unavailable and blocked by
-  unresolved eligibility. Phase 2 summary and Phase 3 quiz/Q&A were verified
-  only through local fallbacks, injected tests, and fail-closed proxy behavior.
+  the unresolved official terms classification for the owner's intended
+  personal use. The owner corrected the earlier unsupported categorical
+  ineligibility claim on 2026-11-02; this is not Google approval. Phase 2
+  summary and Phase 3 quiz/Q&A were verified only through local fallbacks,
+  injected tests, and fail-closed proxy behavior.
 - No Phase 5 work was started. Owner review and acceptance are the next step.

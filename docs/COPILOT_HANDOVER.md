@@ -1,14 +1,20 @@
-# Copilot handover — StudyHub Phase 4
+# Copilot handover — StudyHub Phase 5
 
 **Purpose:** give GitHub Copilot a reliable starting point for continuing
 StudyHub without re-planning completed work, duplicating existing features, or
 assuming an implementation status from documentation alone.
 
-**Status:** Phases 0–4 are implemented and the requested full automated and
-isolated-origin browser verification is complete. Phase 3 and Phase 4 owner
-acceptance remain owner decisions; real provider dispatch is still blocked.
-The actual repository state always takes precedence over this or any
-historical status report.
+**Status:** Phases 0–5 are implemented in the current working tree. Phase 3 and
+Phase 4 owner acceptance remain pending. Phase 5 automated verification is
+complete; no live Gemini API call has been made. The actual repository state
+always takes precedence over this or any historical status report.
+
+**Owner-reported Google clarification (2026-11-02):** the owner reports that
+Google confirmed the intended personal, single-user coursework use is
+permitted. No written response or response date was available in the project
+files. Record only this limited owner report; do not quote unseen correspondence
+or claim broader Google approval. The previous categorical-ineligibility
+statement was a documentation error.
 
 **Read next, in this order:**
 
@@ -21,8 +27,8 @@ historical status report.
 4. [`PHASE_3_PLAN.md`](PHASE_3_PLAN.md) — Phase 3 scope and acceptance status.
 5. [`AI_PLAN.md`](AI_PLAN.md) — the source of truth for AI behaviour, gates,
    privacy, disclosures, and provider eligibility.
-6. [`AI_PROVIDER_ACTIVATION_PLAN.md`](AI_PROVIDER_ACTIVATION_PLAN.md) — a
-   future proposal only; it does not activate or enable provider dispatch.
+6. [`AI_PROVIDER_ACTIVATION_PLAN.md`](AI_PROVIDER_ACTIVATION_PLAN.md) — Phase 5
+   provider implementation, local key security, and activation details.
 7. [`TEST_PLAN.md`](TEST_PLAN.md) — verification patterns and requirement map.
 8. [`ARCHITECTURE.md`](ARCHITECTURE.md) and
    [`AI_LAUNCH_CHECKLIST.md`](AI_LAUNCH_CHECKLIST.md) — boundaries and launch
@@ -35,35 +41,36 @@ historical status report.
 | Item | State |
 | --- | --- |
 | Application | Local-first React 19 + TypeScript + Vite 6 + Tailwind 4 + Dexie/IndexedDB study workspace |
-| Data | Browser-local IndexedDB only; Dexie schema **v7**, eight stores |
+| Data | Study records: browser-local IndexedDB, Dexie schema **v7**, eight stores. Optional Gemini key: separate local server state protected with Windows DPAPI. |
 | Backups | Full **v2** ZIP, module **v1** ZIP; no AI records |
 | Phase 0 | Documentation and privacy records complete |
-| Phase 1 | Local AI proxy skeleton implemented; no provider dispatch |
+| Phase 1 | Loopback AI proxy, fail-closed pipeline, budget, and gates implemented |
 | Phase 2 | Summary UI and request pipeline implemented; documentation complete |
 | Phase 3 | Quiz and single-turn Q&A implemented; final owner acceptance pending |
 | Phase 4 | Local guided recall implemented; recall attempts save as ordinary material-linked notes; final owner acceptance pending |
-| Real provider dispatch | **Blocked**; eligibility unresolved; production provider permanently unconfigured; activation reader permanently disabled |
-| Provider readiness | `AI_PROVIDER_ACTIVATION_PLAN.md` is a proposal for a separately authorized milestone; no provider activation is implemented |
+| Phase 5 | Gemini provider, DPAPI server-only key store, optional setup, and Settings controls implemented; automated verification in progress |
+| Real provider dispatch | Implemented but disabled unless explicitly configured and activated; no live API test has been performed |
+| Provider readiness | Owner-reported confirmation is recorded narrowly; model access, region, billing, limits, disclosures, and fresh payload approval remain independently gated |
 | Working tree | Inspect Git status and diffs before assuming commit history; inherited Phase 1–3 work must be preserved |
 
-Final local verification on **2026-11-01**: `npm run test` passed twice
-(**56 files / 330 tests** each run), `npm run test:server` passed (**3 tests**),
-and `npm run lint`, `npm run typecheck`, `npm run build`, and
-`git diff --check` all passed. These are local results for this working copy,
-not independent verification or evidence of live provider behaviour.
+Final local verification on **2026-11-02**: the first full `npm run test` run
+had two timing-sensitive failures in the known `NotesPage` and `OfficePreview`
+tests; both focused tests passed on rerun, followed by a full pass after the
+loopback hardening (**61 files / 357 tests**). `npm run test:server` passed
+(**3 tests**), and `npm run lint`,
+`npm run typecheck`, `npm run build`, and `git diff --check` passed. These are
+local results for this working copy, not independent verification or evidence
+of live provider behaviour.
 
-The production build was browser-tested on a fresh `127.0.0.1:4174` origin and
-a separate `localhost:4174` origin so test records stayed separate from any
-other browser origin. Tested flows included module/topic creation, local text
-material import and viewing, notes, search, task/calendar/planner navigation,
-summary/quiz/Q&A local fallbacks, guided recall save/reveal/explicit confirmed
-completion, and v2 backup export followed by merge restore while preserving a
-pre-existing destination module. Browser request observation found no external
-requests on local fallback paths; the attempted Q&A preparation reached only
-the loopback proxy and was refused because the proxy is disabled. Browser tests
-did not exercise a live provider, generated AI quiz/Q&A output, the unsupported
-material error screen, a screen reader, or an import from a user's existing
-backup.
+The production build was browser-tested on `http://127.0.0.1:4175` in this
+verification. The first-launch panel appeared with no key; navigation to
+Materials and Settings remained available without dismissing it; M1–M8 were
+visible on setup and Settings; and the Settings page reported no saved key.
+Browser localStorage and sessionStorage were empty. The Continue action was not
+clicked, avoiding a persistent local dismissal-state change. Earlier isolated
+loopback browser checks covered core navigation, material import/view, local
+AI fallbacks, guided-recall flows, and backup merge preservation. No live
+provider request or real model output was tested.
 
 ---
 
@@ -87,18 +94,19 @@ Relevant records:
 
 Phase 1 added `server/ai/`:
 
-- loopback-only request validation and Host/Origin checks;
+- loopback peer/listener request validation and Host/Origin checks;
 - launch-gate evaluation;
 - local daily budget with fail-closed usage state;
 - single-use payload token/digest storage;
 - deterministic error taxonomy and structured logging;
 - a Vite plugin mounted in both dev and preview servers;
-- a permanently unconfigured provider and a permanently disabled activation
-  reader; and
+- an inert provider and disabled activation reader at that phase; Phase 5
+  replaced these with the Gemini provider and explicit local activation; and
 - tests using an injected in-process fake provider.
 
-No production module reads an API key, contains a provider endpoint, or contains
-an HTTP client. The proxy has no UI.
+At Phase 1 completion, no production module read an API key or contained a
+provider endpoint or HTTP client. Phase 5 adds these only to server-side provider
+code and keeps the key out of browser code.
 
 ### Phase 2 — summary UI and request pipeline
 
@@ -145,9 +153,9 @@ The implementation order and resolved owner choices are in
   further work.
 
 The owner approved all documented defaults and authorized the six steps
-autonomously. There are no unresolved Phase 3 product decisions. Provider
-eligibility remains an external unresolved launch condition and still blocks
-real dispatch.
+autonomously. There are no unresolved Phase 3 product decisions. At the time
+of Phase 3, the provider was unconfigured. The subsequent owner-reported
+clarification and Phase 5 implementation are recorded above and below.
 
 ### Phase 4 — local guided recall
 
@@ -178,6 +186,30 @@ link to a material:
   change was added.
 - Acceptance status and exact verification are in
   [`PHASE_4_ACCEPTANCE_REPORT.md`](PHASE_4_ACCEPTANCE_REPORT.md).
+
+### Phase 5 — Gemini integration
+
+Phase 5 uses the existing `server/ai/` provider interface and prepare/send
+pipeline; it does not add a second AI path.
+
+- `server/ai/provider.ts` implements the model metadata check and Gemini
+  Interactions API request, with one attempt, timeout, no redirects, and no
+  retry.
+- `server/ai/secretStore.ts` stores only Windows DPAPI-protected bytes under
+  `.study-hub/`; the key is never put in browser storage, logs, backups, or Git.
+- `server/ai/configuration.ts` manages setup, local gate artifact, activation,
+  skip state, and key removal.
+- `src/features/ai/AiConfigurationPanel.tsx` provides optional first-launch
+  setup and Settings controls. The setup panel does not block navigation.
+- The model metadata test happens only after the explicit button action and
+  sends no study material. Generation still requires
+  `STUDY_HUB_AI_ENABLED=1`, all gates, activation, and fresh payload approval.
+- The proxy checks the actual listener and socket peer are loopback before
+  trusting Host/Origin headers. A Vite host override cannot expose AI routes.
+- Guided recall and deterministic fallbacks remain local; no AI state is
+  persisted to IndexedDB or backups.
+- Do not claim real API success. The owner must enter a replacement key through
+  the local UI; never request it in chat.
 
 ---
 
@@ -254,14 +286,15 @@ Do not commit, push, create a branch, revert, or discard changes.
 | `requestValidation.ts` | Host/Origin, body, feature, text, thinking-level, and output-token validation. Already accepts `quiz` and `qa`. |
 | `pipeline.ts` | Ordered fail-closed prepare/send pipeline. |
 | `handler.ts` | HTTP surface and structured log. |
-| `provider.ts`, `activation.ts` | Permanently unconfigured provider and disabled activation reader. Do not change for Phase 3. |
+| `provider.ts`, `activation.ts` | Gemini provider and explicit local activation; Phase 5 only. |
+| `secretStore.ts`, `configuration.ts` | Windows DPAPI key storage and local setup lifecycle. |
 | `gates.ts`, `budget.ts`, `payloadStore.ts`, `types.ts` | Gates, local cap, token/digest store, and shared contract. |
 | `testing/fakeProvider.ts` | Test-only provider double. Never import from production. |
 | `*.test.ts`, `phase2Docs.test.ts` | Existing Phase 1/Phase 2 tests and disclosure checks. |
 
 `server/ai/config.ts` already has quiz/Q&A configuration. Phase 3 required no
-production server change. Any future request to change production server AI
-code requires separate owner approval.
+production server change. Production server AI changes require explicit owner authorization. Phase 5 is
+authorized by the current owner request; do not extend beyond its scope.
 
 ### Data and safety boundaries
 
@@ -270,7 +303,7 @@ code requires separate owner approval.
 | Dexie schema | `src/features/modules/moduleDatabase.ts` — v7, eight stores; do not change. |
 | Backups | `src/features/backup/BackupService.ts` — v2 full, v1 module; no AI records; do not change format. |
 | Service worker | `public/sw.js` — app shell and same-origin hashed assets only; never widen it. |
-| Provider status | `docs/AI_PLAN.md` §3 and §6; `docs/AI_LAUNCH_CHECKLIST.md`; blocked. |
+| Provider status | `docs/AI_PLAN.md` §3 and §6; `docs/AI_LAUNCH_CHECKLIST.md`; owner-reported confirmation is limited to the intended personal coursework use and is not broader or independently verified approval. |
 | Disclosures | `src/features/ai/disclosures.ts` and `docs/AI_PLAN.md` §8.2; frozen M1–M8. |
 
 ---
@@ -336,11 +369,13 @@ code that exercises it exists and the test has actually run.
 For future work, Copilot must stop and wait for explicit owner approval:
 
 - before extending or revising the completed Phase 3 scope;
-- before any production `server/ai/` change;
+- before any additional production `server/ai/` change not covered by an
+  explicit current authorization;
 - before any change to the prepare/send contract;
 - before any schema, backup, dependency, provider, gate, activation, or region
   change;
-- before any real network/provider test;
+- before any real network/provider test unless explicitly authorized; never
+  request or print an API key in chat;
 - before any commit, push, branch, or revert.
 
 A passing test, a completed step, or silence is not approval for additional
