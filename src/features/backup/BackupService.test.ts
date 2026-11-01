@@ -270,6 +270,10 @@ describe("BackupService", () => {
     const backup = await service.createModuleBackup(moduleRecord.id);
     const target = createDatabase("module-target");
 
+    await expect(new BackupService(target).inspect(backup.slice(0))).resolves.toMatchObject({
+      kind: "module",
+      version: 1,
+    });
     await new BackupService(target).restore(backup.slice(0), "merge");
     expect(await target.topics.get(topicRecord.id)).toEqual(topicRecord);
     expect(await target.storedFiles.get(materialRecord.id)).toBeDefined();

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, Check, Clock3, FileText, Plus, SkipForward, Trash2 } from "lucide-react";
+import { BookOpenCheck, CalendarDays, Check, Clock3, FileText, Plus, SkipForward, Trash2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/StatePanel";
@@ -166,6 +166,14 @@ export function StudyPlannerPage() {
                     </span>
                   </button>
                   <div className="flex shrink-0 flex-wrap gap-2">
+                    {session.status === "planned" && session.materialId && (
+                      <Link
+                        className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-medium text-brand hover:bg-brand-soft"
+                        to={`/planner/sessions/${session.id}/review`}
+                      >
+                        <BookOpenCheck aria-hidden="true" size={12} />Start guided recall
+                      </Link>
+                    )}
                     {session.status !== "completed" && <button className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[10px] font-medium text-brand hover:bg-brand-soft" onClick={() => void setStatus(session, "completed")} type="button"><Check aria-hidden="true" size={12} />Complete</button>}
                     {session.status !== "completed" && session.status !== "skipped" && (
                       <button

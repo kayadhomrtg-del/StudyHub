@@ -3,7 +3,9 @@
 A local-first study workspace for organizing college modules, course materials,
 notes, tasks, study sessions, and backups. The application uses React,
 TypeScript, Vite, and Dexie/IndexedDB. It has no backend, account system, cloud
-sync, analytics, telemetry, or external AI service.
+sync, analytics, or telemetry. Core study data stays on this device; the
+optional AI flow sends selected extracted text only to its same-machine
+loopback proxy, which cannot reach an external provider.
 
 ## Features
 
@@ -17,12 +19,54 @@ sync, analytics, telemetry, or external AI service.
 - Track assignments and other tasks, due dates, priorities, and completion.
 - Search local module, topic, material, note, and task metadata.
 - View dated tasks and plan local study sessions in the calendar and separate
-  study planner.
+  study planner; start guided active-recall review from a planned session
+  linked to local material.
+- Reveal the full locally extracted source only when ready, save recall
+  attempts as ordinary material-linked notes, and explicitly confirm session
+  completion.
 - Export and restore versioned ZIP backups for the full library or an
   individual module.
 - Use the production app shell offline after its first successful online load
   in a supporting browser. IndexedDB content remains browser-local and is not
   part of the service worker cache.
+
+## Optional AI assistance (summary, quiz, and Q&A — no real dispatch)
+
+The optional AI feature is designed in `docs/AI_PLAN.md` as an optional,
+disabled-by-default, loopback-only proxy for a single user on personal study
+material. The application is fully usable without any of it.
+
+**Phases 1, 2, 3, and 4 are implemented.** Phase 1 added the local proxy
+skeleton, request validation, the launch-gate evaluator, the local daily budget,
+and the error taxonomy in `server/ai/`, mounted by a Vite plugin in both the
+development and the preview server. Phase 2 adds a summary surface reached from
+a supported material's **Summarize** action. It extracts text locally, prepares
+an exact payload through the loopback proxy, shows the full payload, requires a
+fresh approval, and sends only a token and digest. A deterministic local
+fallback makes zero network requests. Phase 3 adds **Quiz** with local
+multiple-choice answer checking and **Ask questions** with single-turn
+material-grounded Q&A. Both reuse the same request pipeline, show the frozen
+M1–M8 disclosures and exact payload, and provide deterministic zero-fetch
+fallbacks. Quiz answers/scores and Q&A questions/answers/references stay in
+memory only. Phase 4 adds a local guided-recall workspace from planned
+material-linked sessions. It reveals the complete locally extracted text only
+after an explicit action; recall attempts are saved only by an explicit save or
+confirmed finish as ordinary notes linked to the material. Finishing is
+explicit and never inferred from elapsed time or navigation. This workflow
+makes no AI or external request and does not change the database schema or
+backup formats.
+
+**There is no way to reach a provider.** The proxy contains no HTTP client,
+reads no API key, and no module knows a provider endpoint; the provider it
+mounts is permanently unconfigured, so a real upstream request is impossible
+rather than merely disabled. Real provider dispatch also stays blocked because
+provider eligibility is unresolved; the launch gates are recorded in
+`docs/AI_LAUNCH_CHECKLIST.md`. Preparation fails closed in normal production.
+Tests use a fake provider or an injected proxy stub and never contact Google.
+
+The proxy routes are always mounted. They answer `not_configured` when the
+proxy is disabled or unconfigured, and fail closed before dispatch when the
+launch gates or activation do not pass.
 
 ## Screenshots
 
@@ -76,6 +120,10 @@ npm run lint
 npm run typecheck
 npm run build
 ```
+
+`npm run test` runs both the browser tests and the Node-side tests for the
+optional AI proxy in `server/ai/`. `npm run test:server` covers the standalone
+production server script.
 
 `npm run build` includes a TypeScript project build before generating `dist/`.
 To serve the built application locally:
@@ -193,6 +241,35 @@ inside the repository. `.gitignore` excludes common local data folders and
 database/backup extensions, but always inspect Git status and staged files
 before publishing.
 
+### Optional AI feature and provider-side handling
+
+The optional AI proxy described in `docs/AI_PLAN.md` is off by default. The
+Phase 1 proxy and Phase 2/3 AI surfaces are implemented; real provider dispatch
+is not. It is a local, loopback-only service for one user, and it changes three
+separate things that must not be confused:
+
+- **StudyHub's own storage.** AI prompts, outputs, and history are never
+  written to IndexedDB, so nothing AI-related appears in a backup. "No AI
+  persistence" refers only to StudyHub's own database and application storage.
+  The proxy keeps two plain local files under the git-ignored `.study-hub/`
+  directory — the launch artifact and the local usage counter — and nothing
+  else.
+- **Provider-side handling.** If a provider request is ever authorized, the
+  provider's own terms apply to the submitted content: provider retention
+  windows, abuse monitoring independent of the request's storage flag, possible
+  review by authorised provider personnel, and — on a free tier — use of
+  submitted content to improve the provider's products, where human reviewers
+  may read and annotate it. These are disclosed from current official
+  documentation and are not covered by StudyHub's local storage guarantees.
+- **Per-request consent.** Before anything is sent, the exact payload is shown
+  and requires a fresh, explicit approval. A payload digest is an integrity
+  check only and is never proof of approval or authorization.
+
+Because provider eligibility for personal study use is not established by any
+authoritative provider documentation, real provider dispatch remains blocked.
+The checklist in `docs/AI_LAUNCH_CHECKLIST.md` records the unresolved
+condition explicitly rather than assuming it away.
+
 ## Run your own copy
 
 Every clone is an independent application source tree. Each user's data is
@@ -279,6 +356,11 @@ you want to apply; no license has been selected for this project.
 ## Repository guide
 
 - `src/` — React/TypeScript application and feature modules.
+- `server/` — Node-side Vite plugin for the optional, gated AI proxy. It runs
+  only in the Vite server process and has no browser code.
 - `scripts/` — local production serving and Windows setup/startup scripts.
 - `public/sw.js` — production application-shell service worker.
 - `docs/` — product, architecture, data model, and test-plan documentation.
+- `docs/AI_PLAN.md` — phased design for the optional, gated AI proxy.
+- `docs/AI_LAUNCH_CHECKLIST.md` — launch-gate template, unresolved conditions,
+  and the inert sample gate artifact.

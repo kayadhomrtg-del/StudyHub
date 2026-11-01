@@ -22,7 +22,9 @@
 - `src/features/tasks/` owns task records, validation, filtering, sorting, and
   task/module/topic/material relationship checks.
 - `src/features/studySessions/` owns study-session types, validation, local-time
-  conversion, and repository-backed persistence.
+  conversion, and repository-backed persistence. `studySessionSource.ts`
+  resolves a planned session's linked material and reuses the bounded local
+  extractor for guided recall.
 - `src/features/search/` provides metadata-only queries and category-grouped
   local search results without reading stored file bytes.
 - `src/features/backup/` creates and validates versioned local ZIP archives,
@@ -55,6 +57,19 @@ its record in the separate Study planner area. Study planner owns session
 creation, editing, completion/skipping, and deletion. Session start times are
 entered using browser-local controls and stored as ISO values.
 
+Guided recall is available from a planned session with a material link at
+`/planner/sessions/:sessionId/review`. It loads that session's material and
+bytes through the existing services, extracts text locally with the existing
+bounded material extractor, and keeps the source out of the rendered page
+until the learner chooses to reveal the full extracted text. The recall editor
+is in memory until explicit Save or confirmed Finish; saved attempts use the
+ordinary note service and notes store, linked to the material. The note model
+does not support a study-session link, so no schema change or synthetic link is
+added. Finish saves any changed attempt before setting the selected session to
+completed through `StudySessionService`; source reveal, navigation, elapsed
+time, and note saving do not complete it. The feature adds no network request,
+store, index, or backup-format change.
+
 `BackupService` writes a documented v2 ZIP containing a manifest, every
 structured record/settings table, and a separate binary entry for every
 material. It checks relationships, record counts, file sizes, CRCs, and
@@ -77,8 +92,43 @@ available. This does not protect IndexedDB content from browser storage loss.
 
 Tailwind CSS utilities use project-owned color tokens, with CSS variables for
 light and dark appearances. Fonts and assets use local system resources; there
-are no runtime CDN dependencies. The app does not make network requests for
-user content or require an account or backend.
+are no runtime CDN dependencies. Core workflows do not send user content to a
+remote service and do not require an account or backend. The optional AI
+prepare request transfers selected extracted text only to the same-machine
+loopback proxy; provider dispatch remains impossible in the current code.
+
+One narrow, optional exception to the no-network posture is documented in
+`docs/AI_PLAN.md`: a disabled-by-default Gemini proxy served from the same
+loopback origin. Its boundary is deliberately small:
+
+- It listens on `127.0.0.1` only and is reachable only from the same origin.
+- It introduces no account, no telemetry, no hosted component, and no new
+  persistence mechanism.
+- It dispatches upstream only after a fresh, explicit approval of the exact
+  payload, and only when every launch gate in `docs/AI_LAUNCH_CHECKLIST.md`
+  passes. Real dispatch stays blocked while provider eligibility is unresolved.
+- It never writes AI prompts, outputs, or history to IndexedDB, and it never
+  includes the optional personal notes in a dispatched payload.
+
+Provider-side handling — provider retention, abuse monitoring, possible human
+review, and free-tier product-improvement use — sits outside the application's
+storage boundary and is disclosed separately from local storage. "No AI
+persistence" refers only to StudyHub's own database and application storage.
+
+The Phase 1 proxy skeleton lives in `server/ai/` and runs only in the Vite
+server process; it has no browser code and no Dexie access. It contains no
+HTTP client, reads no API key, and knows no provider endpoint, so it cannot
+dispatch at all. Its local state is two plain files under the git-ignored
+`.study-hub/` directory: the launch artifact and the usage counter.
+
+The optional AI UI lives in `src/features/ai/` with material-scoped route
+wrappers in `src/pages/MaterialSummaryPage.tsx`,
+`src/pages/MaterialQuizPage.tsx`, and `src/pages/MaterialQaPage.tsx`. Each
+loads already-imported material bytes and extracts text locally. Summary,
+quiz, and Q&A use the same loopback prepare/review/approve/send pipeline; quiz
+answer checking is local, and Q&A is single-turn with inert provider-reported
+references. These surfaces add no database store, backup record, account,
+telemetry, provider endpoint, or real provider dispatch.
 
 ## Boundaries
 
@@ -91,3 +141,10 @@ search/dashboard, and Phase 7 calendar and study sessions. Phase 8 adds
 versioned v2 full backups and production app-shell caching; appearance settings
 are stored in schema version 7. Future schema changes must increment
 the Dexie version and preserve existing user data.
+
+Optional AI assistance is a separate, gated boundary from the local features
+above and is phased in `docs/AI_PLAN.md`. The local proxy and summary UI are
+implemented, including quiz and Q&A. Real-provider authorization is still
+blocked and out of scope. The optional AI feature must not change the Dexie
+schema version, the backup formats, or the local-only behaviour of any existing
+feature.

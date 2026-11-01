@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpLeft, Heart } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpLeft, Heart, MessageCircleQuestion, Sparkles, SquareCheckBig } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorState, LoadingState } from "../components/ui/StatePanel";
+import { isMaterialTextSupported } from "../features/ai/materialTextSupport";
 import { DownloadOriginal, MaterialFileViewer } from "../features/materials/MaterialFileViewer";
 import type { MaterialRecord } from "../features/materials/material";
 import { materialService } from "../features/materials/MaterialService";
@@ -198,7 +199,32 @@ export function MaterialViewerPage() {
             </h1>
             <p className="mt-1 break-all text-[11px] text-muted">{material.originalFileName}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {isMaterialTextSupported(material) && (
+              <>
+                <Link
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-canvas px-3 py-2 text-[11px] font-semibold text-ink hover:bg-subtle"
+                  to={`/materials/${material.id}/summary`}
+                >
+                  <Sparkles aria-hidden="true" size={14} />
+                  Summarize
+                </Link>
+                <Link
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-canvas px-3 py-2 text-[11px] font-semibold text-ink hover:bg-subtle"
+                  to={`/materials/${material.id}/quiz`}
+                >
+                  <SquareCheckBig aria-hidden="true" size={14} />
+                  Quiz
+                </Link>
+                <Link
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-canvas px-3 py-2 text-[11px] font-semibold text-ink hover:bg-subtle"
+                  to={`/materials/${material.id}/qa`}
+                >
+                  <MessageCircleQuestion aria-hidden="true" size={14} />
+                  Ask questions
+                </Link>
+              </>
+            )}
             <label className="sr-only" htmlFor="viewer-study-status">Study status</label>
             <select
               className="rounded-xl border border-line bg-canvas px-3 py-2 text-[11px] text-ink"

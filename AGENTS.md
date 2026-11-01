@@ -34,7 +34,11 @@ Data lives only in the browser's IndexedDB for the current origin.
 4. Backups must never silently omit a material; keep v1/v2 read compatibility and
    validate-before-write restore semantics.
 5. No backend/network/telemetry additions; keep `public/sw.js` limited to app-shell and
-   same-origin hashed assets.
+   same-origin hashed assets. One narrow exception is documented in `docs/AI_PLAN.md`:
+   an optional, disabled-by-default, loopback-only Gemini proxy for a single user.
+   Real provider dispatch stays blocked while provider eligibility is unresolved
+   (see `docs/AI_LAUNCH_CHECKLIST.md`); it must never be enabled by a sample
+   configuration, a test fixture, or the completion of a phase.
 6. Keep changes minimal and scoped; reuse existing components/hooks/utils; do not bump
    dependency versions without a clear reason (`pdfjs-dist` is pinned exactly on purpose).
 

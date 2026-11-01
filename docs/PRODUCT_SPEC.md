@@ -66,6 +66,13 @@ If the user later wants a more native file-system experience, package the mature
 5. Mark the item as not started, in progress, or completed.
 6. Find it later through global search.
 
+For a planned study session linked to material, open **Start guided recall**
+from the Study Planner. Write a recall attempt before revealing the source,
+compare it with the full locally extracted text, and explicitly save the
+attempt as an ordinary note linked to that material. Finish the session only
+with the confirmed **Finish session** action; finishing saves any changed
+attempt first. A recall attempt is not scored and does not indicate mastery.
+
 ### Main workflow: assignment tracking
 1. Create an assignment and link it to a module.
 2. Add a due date, priority, description, status, and related files.
@@ -191,6 +198,12 @@ Task fields:
 - Manually schedule a study session with module, topic/material, date, duration, and optional goal.
 - “Today” and “This week” views.
 - Simple session completion and actual duration.
+- Open a material-linked planned session in the local guided-recall workspace.
+- Keep extracted source hidden until an explicit reveal; save recall attempts
+  only as ordinary material-linked notes through the existing notes service.
+- Require explicit confirmation before the guided workspace marks a session
+  complete; do not infer completion from elapsed time, navigation, reveal, or
+  note saving.
 - Optional focus timer only after manual planning is working.
 - No automatic claims that a session happened unless the user marks it complete.
 
@@ -390,8 +403,19 @@ The app must not require login or internet access for core use.
 - No cloud database.
 - No analytics, tracking pixels, or telemetry.
 - No external fonts/CDNs at runtime; bundle assets locally.
-- No AI API calls or remote summarization.
-- No network requests containing study content.
+- No remote AI API calls or remote summarization by default. One narrow, optional
+  exception is documented in `docs/AI_PLAN.md`: a same-machine loopback proxy used by a
+  single user for personal study. The browser sends selected extracted text to that local
+  proxy during preparation; preparation does not contact a provider. Real provider
+  dispatch remains blocked while eligibility is unresolved
+  (`docs/AI_LAUNCH_CHECKLIST.md`), and the application must remain fully usable with the
+  feature switched off.
+- No requests send study content to a remote service. Any future provider request requires
+  a payload the user has reviewed in full and explicitly approved immediately before it is
+  sent.
+- Provider-side handling is disclosed separately from local storage: provider retention,
+  abuse monitoring, possible human review, and free-tier product-improvement use are
+  stated from current official documentation and are never implied by "local-only".
 - Service worker caches the app shell and static assets.
 - Imported files and structured data remain in local browser storage.
 - External links are stored locally and only visited on user action.
@@ -404,6 +428,9 @@ The app must not require login or internet access for core use.
 4. Reload the app.
 5. Confirm the dashboard, data, PDF, search, notes, and task editing still work.
 6. Confirm that no feature blocks the user with a network error.
+
+Offline behavior must be unchanged when the optional AI proxy is disabled, and the
+optional AI feature must never block a core workflow with a network error.
 
 For local development, run `npm run dev`. For a production local build, run `npm run build` and `npm run preview`. The app may be hosted only on `localhost`; do not expose it to a public network by default.
 
@@ -692,6 +719,11 @@ You are helping build College Study Hub, a local-first college study application
 ## Non-negotiable requirements
 - All user data and imported course materials remain local.
 - Do not add a backend, login, cloud sync, analytics, telemetry, or external AI API.
+  One narrow exception is documented in `docs/AI_PLAN.md`: an optional,
+  disabled-by-default, loopback-only Gemini proxy for a single user on personal study
+  material. Real provider dispatch stays blocked until provider eligibility is resolved
+  (`docs/AI_LAUNCH_CHECKLIST.md`); do not enable dispatch from a sample configuration, a
+  test fixture, or the completion of a phase.
 - Do not load runtime fonts, scripts, or styles from a CDN.
 - Do not execute imported files or render imported HTML as trusted content.
 - Do not wipe the database to fix a bug.

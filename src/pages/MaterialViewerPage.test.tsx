@@ -231,6 +231,49 @@ describe("MaterialViewerPage", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:image-two");
   });
 
+  it("links a supported material to its AI routes without changing the viewer", async () => {
+    const material = createMaterial("summary-source", "week-notes.txt", {
+      content: "Course notes for the week.",
+    });
+    await saveMaterial(material, "Course notes for the week.");
+
+    renderViewer(material.id);
+
+    expect(await screen.findByRole("heading", { name: "week-notes" })).toBeInTheDocument();
+    expect(await screen.findByText("Course notes for the week.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Summarize" })).toHaveAttribute(
+      "href",
+      `/materials/${material.id}/summary`,
+    );
+    expect(screen.getByRole("link", { name: "Quiz" })).toHaveAttribute(
+      "href",
+      `/materials/${material.id}/quiz`,
+    );
+    expect(screen.getByRole("link", { name: "Ask questions" })).toHaveAttribute(
+      "href",
+      `/materials/${material.id}/qa`,
+    );
+  });
+
+  it.each([
+    ["image", "diagram.png", "image/png"],
+    ["audio", "lecture.mp3", "audio/mpeg"],
+    ["legacy office", "handout.doc", "application/msword"],
+  ])("does not offer AI actions for %s materials", async (_kind, fileName, mimeType) => {
+    const material = createMaterial(`unsupported-${fileName}`, fileName, {
+      content: "unsupported bytes",
+      mimeType,
+    });
+    await saveMaterial(material, "unsupported bytes");
+
+    renderViewer(material.id);
+
+    expect(await screen.findByRole("heading", { name: material.title })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Summarize" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Quiz" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Ask questions" })).not.toBeInTheDocument();
+  });
+
   it("switches between materials in a topic and records the newly opened time", async () => {
     const first = createMaterial("first", "first.txt", {
       content: "first content",

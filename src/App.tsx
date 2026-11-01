@@ -19,6 +19,15 @@ const MaterialsPage = lazy(() =>
 const MaterialViewerPage = lazy(() =>
   import("./pages/MaterialViewerPage").then((module) => ({ default: module.MaterialViewerPage })),
 );
+const MaterialSummaryPage = lazy(() =>
+  import("./pages/MaterialSummaryPage").then((module) => ({ default: module.MaterialSummaryPage })),
+);
+const MaterialQuizPage = lazy(() =>
+  import("./pages/MaterialQuizPage").then((module) => ({ default: module.MaterialQuizPage })),
+);
+const MaterialQaPage = lazy(() =>
+  import("./pages/MaterialQaPage").then((module) => ({ default: module.MaterialQaPage })),
+);
 const TopicMaterialsPage = lazy(() =>
   import("./pages/TopicMaterialsPage").then((module) => ({ default: module.TopicMaterialsPage })),
 );
@@ -40,6 +49,9 @@ const AsyncCalendarPage = lazy(() =>
 const AsyncStudyPlannerPage = lazy(() =>
   import("./pages/StudyPlannerPage").then((module) => ({ default: module.StudyPlannerPage })),
 );
+const StudySessionReviewPage = lazy(() =>
+  import("./pages/StudySessionReviewPage").then((module) => ({ default: module.StudySessionReviewPage })),
+);
 
 function RouteLoading({ label }: { label: string }) {
   return <LoadingState label={label} />;
@@ -53,6 +65,9 @@ export function AppRoutes() {
         <Route path="modules" element={<Suspense fallback={<RouteLoading label="Loading modules" />}><ModulesPage /></Suspense>} />
         <Route path="modules/:moduleId" element={<Suspense fallback={<RouteLoading label="Loading module" />}><ModuleDetailPage /></Suspense>} />
         <Route path="materials/:materialId" element={<Suspense fallback={<RouteLoading label="Loading material" />}><MaterialViewerPage /></Suspense>} />
+        <Route path="materials/:materialId/summary" element={<Suspense fallback={<RouteLoading label="Loading summary" />}><MaterialSummaryPage /></Suspense>} />
+        <Route path="materials/:materialId/quiz" element={<Suspense fallback={<RouteLoading label="Loading quiz" />}><MaterialQuizPage /></Suspense>} />
+        <Route path="materials/:materialId/qa" element={<Suspense fallback={<RouteLoading label="Loading Q&A" />}><MaterialQaPage /></Suspense>} />
         <Route
           path="modules/:moduleId/topics/:topicId/materials"
           element={<Suspense fallback={<RouteLoading label="Loading topic materials" />}><TopicMaterialsPage /></Suspense>}
@@ -62,6 +77,7 @@ export function AppRoutes() {
         <Route path="tasks" element={<Suspense fallback={<RouteLoading label="Loading tasks" />}><AsyncTasksPage /></Suspense>} />
         <Route path="search" element={<Suspense fallback={<RouteLoading label="Loading search" />}><AsyncSearchPage /></Suspense>} />
         <Route path="calendar" element={<Suspense fallback={<RouteLoading label="Loading calendar" />}><AsyncCalendarPage /></Suspense>} />
+        <Route path="planner/sessions/:sessionId/review" element={<Suspense fallback={<RouteLoading label="Loading guided recall" />}><StudySessionReviewPage /></Suspense>} />
         <Route path="planner" element={<Suspense fallback={<RouteLoading label="Loading study planner" />}><AsyncStudyPlannerPage /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<RouteLoading label="Loading settings" />}><AsyncSettingsPage /></Suspense>} />
         {workspacePages.filter((page) => !["/settings", "/notes", "/tasks", "/search", "/calendar", "/planner"].includes(page.path)).map((page) => (

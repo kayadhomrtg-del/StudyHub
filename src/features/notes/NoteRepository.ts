@@ -1,5 +1,5 @@
 import type { ModuleDatabase } from "../modules/moduleDatabase";
-import type { NoteDraft, NoteRecord } from "./note";
+import type { NoteDraft, NoteLink, NoteRecord } from "./note";
 
 export class NoteRepository {
   constructor(private readonly database: ModuleDatabase) {}
@@ -17,6 +17,22 @@ export class NoteRepository {
     return note;
   }
 
+  async addDraft(note: NoteRecord): Promise<NoteRecord> {
+    return this.database.transaction(
+      "rw",
+      this.database.notes,
+      this.database.modules,
+      this.database.topics,
+      this.database.materials,
+      this.database.tasks,
+      async () => {
+        if (note.link) await this.ensureLinkExists(note.link);
+        await this.database.notes.add(note);
+        return note;
+      },
+    );
+  }
+
   async saveDraft(id: string, draft: NoteDraft, updatedAt: string): Promise<NoteRecord> {
     return this.database.transaction(
       "rw",
@@ -28,17 +44,7 @@ export class NoteRepository {
       async () => {
         const existing = await this.database.notes.get(id);
         if (!existing) throw new Error("This note no longer exists. Reload the page and try again.");
-        if (draft.link) {
-          const exists =
-            draft.link.type === "module"
-              ? await this.database.modules.get(draft.link.id)
-              : draft.link.type === "topic"
-                ? await this.database.topics.get(draft.link.id)
-                : draft.link.type === "material"
-                  ? await this.database.materials.get(draft.link.id)
-                  : await this.database.tasks.get(draft.link.id);
-          if (!exists) throw new Error(`The linked ${draft.link.type} no longer exists.`);
-        }
+        if (draft.link) await this.ensureLinkExists(draft.link);
         const saved: NoteRecord = {
           ...existing,
           ...draft,
@@ -50,6 +56,18 @@ export class NoteRepository {
         return saved;
       },
     );
+  }
+
+  private async ensureLinkExists(link: NoteLink): Promise<void> {
+    const exists =
+      link.type === "module"
+        ? await this.database.modules.get(link.id)
+        : link.type === "topic"
+          ? await this.database.topics.get(link.id)
+          : link.type === "material"
+            ? await this.database.materials.get(link.id)
+            : await this.database.tasks.get(link.id);
+    if (!exists) throw new Error(`The linked ${link.type} no longer exists.`);
   }
 
   delete(id: string): Promise<void> {

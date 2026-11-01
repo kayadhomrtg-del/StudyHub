@@ -3,12 +3,14 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vitest/config";
 import { readFileSync } from "node:fs";
 
+import { studyHubAiProxyPlugin } from "./server/ai/plugin";
+
 const { version: appVersion } = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf8"),
 ) as { version: string };
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), studyHubAiProxyPlugin()],
   build: {
     manifest: "build-manifest.json",
   },

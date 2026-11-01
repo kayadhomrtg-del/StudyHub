@@ -69,6 +69,17 @@ export class NoteService {
     });
   }
 
+  async createDraft(input: NoteDraft): Promise<NoteRecord> {
+    const draft = normalizeDraft(input);
+    const timestamp = this.now();
+    return this.repository.addDraft({
+      ...draft,
+      id: this.createId(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  }
+
   async saveDraft(id: string, input: NoteDraft): Promise<NoteRecord> {
     const draft = normalizeDraft(input);
     const previous = this.pendingSaves.get(id);

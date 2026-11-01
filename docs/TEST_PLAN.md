@@ -172,3 +172,245 @@ each milestone complete.
     session material links open the material viewer and session changes persist.
 - Verify the dashboard includes only real future tasks and planned sessions,
     with completion counts derived from persisted records.
+
+## Phase 8 guided recall checks
+
+- Verify the planner offers guided recall only for a planned session linked to
+    material and routes to the source linked to that exact session.
+- Verify missing sessions/materials/files, unsupported formats, empty text,
+    invalid text bytes, and extractor errors produce clear errors without
+    changing session or material records.
+- Verify the existing extractor is used locally and the full extracted text
+    remains hidden until explicit reveal; after reveal, verify all extracted
+    text appears in its original extracted order and the recall editor remains
+    visible for comparison.
+- Verify keyboard reveal, labels, live save status, error announcements,
+    responsive scrolling, and the explicit Finish confirmation.
+- Verify an unsaved attempt is not persisted during ordinary typing, source
+    reveal, or navigation; navigation/remount clears unsaved editor state.
+- Verify explicit save creates one ordinary note tagged for recall and linked
+    to the session's material; repeated saves update the same note, not a second
+    record. No study-session relation is added to the note schema.
+- Simulate note-save failure and verify no success status, no orphan note, and
+    a successful retry. If note saving fails during Finish, verify the session
+    remains planned.
+- Verify Finish saves a changed attempt before completing only the selected
+    session, accepts only a whole non-negative actual duration, and prevents
+    duplicate completion calls. Cancel, navigation, elapsed time, reveal, and
+    saving alone never complete a session.
+- Verify the recall attempt is ordinary user-authored note data (and therefore
+    included in ordinary note backup/export behavior), never AI prompt/output
+    data; verify the feature makes no AI or external network request.
+- Rerun existing note, material, session, calendar, backup, import, viewer,
+    summary, quiz, and Q&A tests; confirm Dexie v7/eight stores and backup
+    formats v2/v1 remain unchanged.
+
+## Optional AI feature checks
+
+**Status: Phases 1–3 implemented; Phase 4 guided recall is implemented and
+verified; owner acceptance is pending.** Phase 3 was authorized as a complete
+six-step scope. The focused checks below exercise the shared client, quiz,
+Q&A, routes, viewer links, and privacy boundaries.
+
+**Current verification (local workspace, not independent verification):** on
+**2026-11-01**, `npm run test` passed twice (**56 files / 330 tests** each
+run), `npm run test:server` passed **3 tests**, and `npm run lint`,
+`npm run typecheck`, `npm run build`, and `git diff --check` passed. These
+results are for this working copy and do not verify live provider behaviour.
+The production build was also browser-tested on isolated loopback origins for
+core navigation, local material import/view, Phase 2–3 local fallbacks,
+guided-recall save/reveal/confirmed completion, and backup merge preservation;
+no external provider request occurred.
+
+The optional AI proxy is off by default and loopback-only. Every automated check
+that can reach a provider uses an injected in-process fake provider or an
+injected proxy stub: **a test must never contact Google**, and a test must never
+be able to enable a real request.
+
+The Phase 1 checks live in `server/ai/*.test.ts`. Phase 2/3 browser checks live
+in `src/features/ai/*.test.*`, `src/pages/MaterialSummaryPage.test.tsx`,
+`src/pages/MaterialQuizPage.test.tsx`, `src/pages/MaterialQaPage.test.tsx`, and
+the related viewer/backup tests. All run under `npm run test`.
+
+### Phase 0 documentation checks (manual)
+
+- Verify `docs/AI_PLAN.md`, `docs/AI_LAUNCH_CHECKLIST.md`, `README.md`,
+  `docs/PRODUCT_SPEC.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`, and
+  `.github/copilot-instructions.md` describe the same feature: optional, off by
+  default, single user, no accounts, no telemetry, no hosted backend.
+- Verify the sample gate artifact in `docs/AI_LAUNCH_CHECKLIST.md` is inert:
+  `termsEligibility.status` is `unresolved` and `exposureAcknowledged` is
+  `false`, so no reading of it can enable a real request. **Automated since
+  Phase 1** — `server/ai/gates.test.ts` extracts the block from this document
+  and asserts that it fails the gates.
+- Verify the sample artifact contains no API key and no Google Cloud project
+  identifier.
+- Verify the artifact separates user declarations from automated verification
+  evidence: there is no artifact field for test output, and no checklist
+  checkbox stands in for an eligibility determination.
+- Verify exactly one field is named as the source of truth for the effective
+  daily request cap, and that the plan, the checklist, and the sample artifact
+  all name the same field.
+- Verify every provider citation in the plan was fetched from official
+  documentation on the recorded date and still contains the quoted text.
+
+### Phase 1 proxy checks (implemented)
+
+- Verify the proxy mounts in the Vite dev server and in the preview server, and
+  that the bound host is `127.0.0.1` only. — `server/ai/plugin.test.ts`,
+  `server/ai/safety.test.ts`
+- Verify the plugin registers both `configureServer` and
+  `configurePreviewServer`, and that the preview server still reports Vite's
+  own "Did you build your project?" message when `dist/` is absent (registering
+  `configurePreviewServer` suppresses it, so the plugin must restore it). —
+  `server/ai/plugin.test.ts`
+- Verify the preview server is reachable on its dynamically assigned port when
+  the preferred port is occupied. — `npm run test:server`
+- Verify the mounted production route answers `not_configured` and makes no
+  outbound call. — `server/ai/safety.test.ts`
+- Verify no production module contains an HTTP client, a provider endpoint, or
+  a credential name, and that no production module imports the test-only
+  provider. — `server/ai/safety.test.ts`
+- Verify a request with no API key is rejected before any upstream call and
+  consumes no budget unit. — `server/ai/handler.test.ts`
+- Verify the Host header and the Origin header are validated before a token is
+  created or a payload is stored, and that a foreign Host or Origin is refused
+  with `forbidden_origin`. — `server/ai/requestValidation.test.ts`,
+  `server/ai/handler.test.ts`
+- Verify input validation rejects malformed or oversized payloads before any
+  upstream call. — `server/ai/requestValidation.test.ts`
+- Verify the local daily cap is enforced server-side, that the counter is
+  charged exactly once per dispatched request, and that pre-dispatch rejections
+  consume nothing (inject a clock/counter so the reset window is deterministic).
+  — `server/ai/budget.test.ts`, `server/ai/pipeline.test.ts`
+- Verify a missing, malformed, unreadable, or corrupted usage counter fails
+  closed with `local_limit` and is never silently reset to zero; only a
+  rolled-over local day starts a fresh count. — `server/ai/budget.test.ts`
+- Verify the daily cap is a local ceiling only, is not presented as a provider
+  quota, and is labelled with a reset time that is not implied to match the
+  provider's midnight-Pacific RPD reset. — `server/ai/budget.test.ts`
+- Verify each dispatch produces exactly one upstream call and that no retry
+  path exists. — `server/ai/pipeline.test.ts`
+- Verify the request log line contains method, path, status, duration, byte
+  counts, model, upstream status, upstream-attempted flag, error code, and gate
+  verdict — and contains no request or response body, no header value, and no
+  key material. — `server/ai/handler.test.ts`
+
+### Phase 2 UI and request pipeline checks (implemented)
+
+- Verify the exact outbound payload is displayed before sending and that the
+  displayed payload matches the dispatched payload byte-for-byte. —
+  `AiSummaryPage.test.tsx`, `aiClient.test.ts`, `server/ai/pipeline.test.ts`
+- Verify a request cannot be sent without a fresh, explicit approval, and that
+  a previous approval cannot be reused for a later request. —
+  `useAiSummaryRequest.test.tsx`, `AiSummaryPage.test.tsx`,
+  `server/ai/payloadStore.test.ts`
+- Verify the payload digest is reported as an integrity check and is never
+  presented as proof of approval or authorization. — `AiSummaryPage.test.tsx`,
+  `server/ai/payloadStore.test.ts` + manual
+- Verify a payload mismatch is rejected before dispatch with a deterministic
+  reason and consumes no budget unit. — `useAiSummaryRequest.test.tsx`,
+  `aiClient.test.ts`, `server/ai/pipeline.test.ts`
+- Verify optional personal notes never appear in the dispatched payload. —
+  `AiSummaryPage.test.tsx`
+- Verify no AI prompt, output, or history is written to IndexedDB and that a
+  backup contains no AI-related records. — `AiSummaryPage.test.tsx`,
+  `BackupService.test.ts`
+- Verify the local fallback path performs zero `fetch` calls of any kind and
+  produces a result from in-memory extracted text only. —
+  `localSummary.test.ts`, `useAiSummaryRequest.test.tsx`,
+  `AiSummaryPage.test.tsx`, `MaterialSummaryPage.test.tsx`
+- Verify the UI distinguishes "Not sent — reason" (pre-dispatch rejection),
+  "Request failed after sending — reason" (upstream already attempted), and an
+  unknown outcome. — `AiErrorNotice.test.tsx`, `AiSummaryPage.test.tsx`,
+  `aiClient.test.ts`
+- Verify rate limiting and quota exhaustion are reported as distinct outcomes
+  and that an HTTP 429 is not assumed to mean the daily quota is exhausted. —
+  `aiClient.test.ts`, `AiErrorNotice.test.tsx` (simulated proxy responses only)
+- Verify a provider error and a network failure are reported as distinct
+  outcomes. — `aiClient.test.ts`, `AiErrorNotice.test.tsx`
+- Verify the client attempt state machine permits sending only from `review`
+  with a fresh approval, never from preparation or a settled state, and that a
+  new request requires a new user action. — `useAiSummaryRequest.test.tsx`
+- Verify the mandatory disclosures M1–M8 are shown verbatim and cannot be
+  edited, while the optional personal notes remain editable. —
+  `AiSummaryPage.test.tsx`, `server/ai/phase2Docs.test.ts` + manual
+
+### Phase 3 quiz and Q&A checks (implemented)
+
+- Verify `quiz` and `qa` use the shared relative prepare/send routes with exact
+  request keys; summary wrappers retain their Phase 2 behaviour. —
+  `aiClient.test.ts`, `testing/stubAiFetch.test.ts`
+- Verify quiz JSON is bounded and validated; invalid or incomplete output is
+  shown as inert raw text and cannot be graded. —
+  `quizOutput.test.ts`, `AiQuizPage.test.tsx`
+- Verify answer checking requires every choice, locks after checking, computes
+  all-or-nothing score locally, and displays explanations. —
+  `AiQuizPage.test.tsx`
+- Verify Q&A question validation rejects blank and over-limit questions without
+  a request, and the exact `buildQaInput` template contains only selected
+  material text and the entered question. —
+  `buildQaInput.test.ts`, `AiQaPage.test.tsx`, `MaterialQaPage.test.tsx`
+- Verify Q&A parsing requires a non-empty answer, tolerates missing or invalid
+  references without inventing any, and renders valid reference strings as
+  provider-reported/unverified inert text. —
+  `qaOutput.test.ts`, `AiQaPage.test.tsx`
+- Verify quiz and Q&A local fallbacks are deterministic, use only extracted
+  source excerpts, and make zero `fetch` calls. —
+  `localQuiz.test.ts`, `localQa.test.ts`, `AiQuizPage.test.tsx`,
+  `AiQaPage.test.tsx`, `useAiFeatureRequest.test.tsx`
+- Verify each AI surface renders the frozen M1–M8 entries before the first
+  request; no AI notes, prompts, outputs, answers, scores, or references are
+  written to Dexie or backups. —
+  `AiQuizPage.test.tsx`, `AiQaPage.test.tsx`, `MaterialQuizPage.test.tsx`,
+  `MaterialQaPage.test.tsx`, `BackupService.test.ts` + source review
+- Verify supported-material viewer links route to quiz and Q&A, while
+  unsupported material types do not expose AI actions. —
+  `MaterialViewerPage.test.tsx`
+
+### Requirement-to-verification map
+
+| Requirement | Verification | Type |
+| --- | --- | --- |
+| Loopback-only, single-origin proxy | Proxy mounts in dev and preview; host is `127.0.0.1` | Automated (implemented — `plugin`, `safety`) |
+| Dev and preview lifecycle both supported | Both Vite hooks registered; missing-build message restored | Automated (implemented — `plugin`) |
+| Dynamic port handling | Preview server reachable on an assigned port when the preferred one is busy | Automated (implemented — `test:server`) |
+| Real dispatch disabled by default | No key, no activation, and unresolved eligibility each fail closed | Automated (implemented — `handler`, `pipeline`, `gates`) |
+| Activation is separate from key/env configuration | Key plus env vars alone still fail closed | Automated (implemented — `handler`, `safety`) |
+| Sample artifact cannot enable dispatch | Sample is extracted from the checklist doc and asserted inert | Automated (implemented — `gates`) + manual |
+| Unresolved eligibility blocks dispatch regardless of settings | Artifact with `status: "unresolved"` is rejected | Automated (implemented — `gates`) |
+| Missing / malformed / stale gate | Each case yields its documented deterministic error code | Automated (implemented — `gates`) |
+| Host and Origin must name the local server | A foreign Host or Origin is refused before a token or payload exists | Automated (implemented — `requestValidation`, `handler`) |
+| Local usage counter fails closed | Missing, malformed, unreadable, or corrupted counter yields `local_limit` | Automated (implemented — `budget`) |
+| No production code path can make an outbound request | Source scan plus a mounted-route test with a throwing `fetch` guard | Automated (implemented — `safety`) |
+| Consent and acknowledgement cannot override a server-side block | Blocked gate wins over an approved request | Automated (implemented — `pipeline`, `handler`) |
+| Exact payload shown before sending | Rendered payload equals the dispatched payload | Automated (implemented — `AiSummaryPage.test`, `aiClient.test`, `pipeline`) |
+| Fresh explicit approval per request | Reusing an old approval is rejected | Automated (implemented — `useAiSummaryRequest.test`, `AiSummaryPage.test`, `payloadStore`, `pipeline`) |
+| Only review plus fresh approval may send | Preparation and settled states cannot dispatch; no auto-send | Automated (implemented — `useAiSummaryRequest.test`) |
+| Digest is an integrity check only | Digest is never accepted as approval evidence | Automated (implemented — `AiSummaryPage.test`, `payloadStore`, `pipeline`) + manual |
+| Personal notes never sent | Dispatched payload contains no note field | Automated (implemented — `AiSummaryPage.test`) |
+| M1–M8 immutable | Disclosures render verbatim and are not editable | Automated (implemented — `AiSummaryPage.test`, `phase2Docs.test`) + manual |
+| No AI persistence | IndexedDB and backup contain no AI records | Automated (implemented — `AiSummaryPage.test`, `BackupService.test`) |
+| Quiz and Q&A use the shared request contract | Only exact `feature/text` prepare and `token/digest` send bodies use same-origin routes | Automated (implemented — `aiClient.test`, `stubAiFetch.test`, `useAiFeatureRequest.test`) |
+| Quiz answers remain local | Required all-or-nothing grading and locked score; no follow-up request | Automated (implemented — `AiQuizPage.test`) |
+| Q&A question is validated and visible | Blank/over-limit is rejected; selected source and question appear in exact payload | Automated (implemented — `buildQaInput.test`, `AiQaPage.test`, `MaterialQaPage.test`) |
+| Q&A references are not verified | String references are inert and labelled provider-reported/unverified | Automated (implemented — `qaOutput.test`, `AiQaPage.test`) |
+| Quiz/Q&A fallback is local | Deterministic source excerpts; injected fetch not called | Automated (implemented — `localQuiz.test`, `localQa.test`, `AiQuizPage.test`, `AiQaPage.test`) |
+| Phase 3 M1–M8 placement | All eight frozen disclosure texts render on each new page before interaction | Automated (implemented — `AiQuizPage.test`, `AiQaPage.test`, `phase2Docs.test`) |
+| Provider-side handling disclosed separately | Disclosure text distinguishes the three retention mechanisms | Manual |
+| At most one upstream request per action | Fake provider call count is exactly one | Automated (implemented — `pipeline`) |
+| No automatic retries | Fake provider call count stays one after a failure | Automated (implemented — `pipeline`) |
+| Local fallback makes zero provider requests | Fake provider call count stays zero on the fallback path | Automated (implemented — summary/quiz/Q&A local fallback tests and page tests) |
+| Budget charged once, only when dispatched | Counter increments exactly once per dispatch and not on rejection | Automated (implemented — `budget`, `pipeline`) |
+| Three attempt outcomes remain distinct | Pre-dispatch refusal, failed-after-sending, and unknown are labelled separately | Automated (implemented — `aiClient.test`, `AiErrorNotice.test`, `AiSummaryPage.test`) |
+| Rate limit vs quota vs invalid vs provider error vs network failure | Each simulated condition yields its own error code and client wording | Automated (implemented client presentation — `aiClient.test`, `AiErrorNotice.test`; live provider classification remains unverified) |
+| Local reset may differ from the provider reset | The counter window is the local calendar day and the wording says so | Automated (implemented — `budget`) + manual |
+| Local cap is not a provider quota | Documentation and UI wording; no claim of provider capacity | Manual |
+| No new dependency, backend, telemetry, or persistence | Dependency list and store list unchanged | Manual |
+| Service worker still ignores `/api/*` | Service worker behaviour unchanged | Manual (verified by inspection — `public/sw.js` untouched) |
+
+**Caveat:** every automated check that reaches the provider uses the fake
+provider; Phase 2 UI and client checks use an injected stub fetch or the
+in-process proxy. Simulated tests prove nothing about live account quota, live
+availability, or live provider error behaviour, and must never be reported as if
+they did.

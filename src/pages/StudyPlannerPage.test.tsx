@@ -101,6 +101,69 @@ describe("StudyPlannerPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers guided recall only for a planned session with an associated material", async () => {
+    const timestamp = new Date().toISOString();
+    await moduleDatabase.materials.add({
+      id: "planner-material",
+      title: "Chapter one",
+      originalFileName: "chapter.txt",
+      extension: "txt",
+      mimeType: "text/plain",
+      sizeBytes: 12,
+      moduleId: "planner-module",
+      tags: [],
+      status: "not-started",
+      isFavorite: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    await moduleDatabase.studySessions.bulkAdd([
+      {
+        id: "recall-session",
+        moduleId: "planner-module",
+        materialId: "planner-material",
+        title: "Recall chapter one",
+        plannedStart: timestamp,
+        plannedDurationMinutes: 45,
+        status: "planned",
+        actualDurationMinutes: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: "unlinked-session",
+        moduleId: "planner-module",
+        title: "Unlinked session",
+        plannedStart: timestamp,
+        plannedDurationMinutes: 45,
+        status: "planned",
+        actualDurationMinutes: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: "completed-recall-session",
+        moduleId: "planner-module",
+        materialId: "planner-material",
+        title: "Already completed",
+        plannedStart: timestamp,
+        plannedDurationMinutes: 45,
+        status: "completed",
+        actualDurationMinutes: 45,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ]);
+
+    render(<MemoryRouter><StudyPlannerPage /></MemoryRouter>);
+    await screen.findByRole("heading", { name: "Study sessions" });
+    expect(screen.getByRole("link", { name: "Start guided recall" })).toHaveAttribute(
+      "href",
+      "/planner/sessions/recall-session/review",
+    );
+    expect(screen.getAllByRole("link", { name: "Start guided recall" })).toHaveLength(1);
+  });
+
   it("opens the requested session for editing and persists changes and status", async () => {
     const start = new Date();
     start.setDate(start.getDate() + 2);

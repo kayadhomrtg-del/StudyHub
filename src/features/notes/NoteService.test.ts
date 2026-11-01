@@ -81,6 +81,32 @@ describe("NoteService", () => {
     expect(await database.notes.count()).toBe(0);
   });
 
+  it("creates a complete linked note atomically and rejects a missing link without an orphan", async () => {
+    const saved = await service.createDraft({
+      title: "Recall attempt — Primary sources",
+      markdown: "The source described local archives.",
+      tags: ["recall"],
+      isPinned: false,
+      link: { type: "material", id: "material-1" },
+    });
+
+    expect(saved).toMatchObject({
+      id: "note-1",
+      title: "Recall attempt — Primary sources",
+      markdown: "The source described local archives.",
+      link: { type: "material", id: "material-1" },
+      createdAt: "2026-02-03T12:00:00.000Z",
+    });
+    await expect(service.createDraft({
+      title: "Invalid recall",
+      markdown: "Text",
+      tags: ["recall"],
+      isPinned: false,
+      link: { type: "material", id: "missing-material" },
+    })).rejects.toThrow("The linked material no longer exists.");
+    expect(await database.notes.count()).toBe(1);
+  });
+
   it("saves module, topic, material, and task links and rejects missing local targets", async () => {
     const note = await service.create();
     const task = await new TaskService(new TaskRepository(database), () => "task-1").create({
