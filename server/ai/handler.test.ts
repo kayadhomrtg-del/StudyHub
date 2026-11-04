@@ -11,6 +11,7 @@ import { AiPayloadStore } from "./payloadStore";
 import { createFakeProvider } from "./testing/fakeProvider";
 import type { AiActivationReader } from "./activation";
 import { AiSecretStore, type SecretProtector } from "./secretStore";
+import type { AiProviderDiagnostic } from "./types";
 
 const NOW = new Date("2026-10-22T12:00:00.000Z");
 const TODAY = localDateKey(NOW);
@@ -502,7 +503,20 @@ describe("AI proxy routes", () => {
   });
 
   it("performs the prepare and send handshake with a single dispatch", async () => {
-    const { port, provider, usagePath } = await harness();
+    const diagnostic: AiProviderDiagnostic = {
+      jsonParsed: true,
+      rootIsObject: true,
+      statusPresent: true,
+      statusRecognized: true,
+      statusValue: "completed",
+      generatedTextFieldPresent: true,
+      generatedOutputEmpty: false,
+      providerErrorObjectPresent: false,
+      classification: "completed",
+    };
+    const { port, provider, usagePath } = await harness({
+      provider: createFakeProvider({ status: "complete", diagnostic }),
+    });
 
     const prepared = await call({
       port,
@@ -544,6 +558,7 @@ describe("AI proxy routes", () => {
     });
 
     expect(sent.status).toBe(200);
+    expect(sent.body).not.toContain("providerDiagnostic");
     expect(provider.callCount).toBe(1);
 
     const budget = new AiBudget(usagePath, () => NOW);
@@ -718,5 +733,91 @@ describe("AI proxy routes", () => {
     const entry = JSON.parse(logLines[0]) as Record<string, unknown>;
     expect(entry.gateVerdict).toBe("pass");
     expect(entry.errorCode).toBeNull();
+  });
+
+  it("logs bounded provider diagnostics and the model for a dispatched failure", async () => {
+    const diagnostic: AiProviderDiagnostic = {
+      jsonParsed: true,
+      rootIsObject: true,
+      statusPresent: true,
+      statusRecognized: true,
+      statusValue: "completed",
+      generatedTextFieldPresent: false,
+      generatedOutputEmpty: null,
+      providerErrorObjectPresent: false,
+      classification: "unexpected",
+    };
+    const { port, logLines } = await harness({
+      provider: createFakeProvider({
+        status: "failed",
+        code: "upstream_error",
+        upstreamStatus: 200,
+        message: "safe test failure message",
+        diagnostic,
+      }),
+    });
+
+    const prepared = await call({
+      port,
+      method: "POST",
+      path: "/api/ai/prepare",
+      headers: {
+        host: `127.0.0.1:${port}`,
+        origin: `http://127.0.0.1:${port}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ feature: "summary", text: "Chapter one." }),
+    });
+    expect(prepared.status).toBe(200);
+    const preparedBody = JSON.parse(prepared.body) as {
+      token: string;
+      digest: string;
+    };
+
+    const sent = await call({
+      port,
+      method: "POST",
+      path: "/api/ai/send",
+      headers: {
+        host: `127.0.0.1:${port}`,
+        origin: `http://127.0.0.1:${port}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        token: preparedBody.token,
+        digest: preparedBody.digest,
+      }),
+    });
+
+    expect(sent.status).toBe(502);
+    expect(sent.body).not.toContain("providerDiagnostic");
+
+    const sendLog = logLines
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+      .find((entry) => entry.path === "/api/ai/send");
+    expect(sendLog).toMatchObject({
+      model: "gemini-3.5-flash-lite",
+      upstreamStatus: 200,
+      upstreamAttempted: true,
+      errorCode: "upstream_error",
+      providerDiagnostic: diagnostic,
+    });
+    expect(Object.keys(sendLog?.providerDiagnostic as object).sort()).toEqual(
+      [
+        "classification",
+        "generatedOutputEmpty",
+        "generatedTextFieldPresent",
+        "jsonParsed",
+        "providerErrorObjectPresent",
+        "rootIsObject",
+        "statusPresent",
+        "statusRecognized",
+        "statusValue",
+      ].sort(),
+    );
+    expect(logLines.join("\n")).not.toContain("safe test failure message");
+    expect(JSON.stringify(sendLog?.providerDiagnostic)).not.toContain(
+      "Chapter one.",
+    );
   });
 });

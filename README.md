@@ -60,12 +60,13 @@ backup formats.
 The Gemini provider uses the existing shared request pipeline. Optional
 first-launch setup and Settings store the API key only on the local Windows
 server using DPAPI; the browser never stores it or sends it directly to Google.
-The first-launch panel does not block navigation. To enable configuration and
-generation routes, start StudyHub with `STUDY_HUB_AI_ENABLED=1`; the flag alone
-does not activate provider requests. Dispatch additionally requires successful
-model checks, owner confirmations, active gates, and fresh approval of the
-exact payload. Local fallbacks continue working without a key. Automated tests
-use mocked providers and never contact Google.
+The first-launch panel does not block navigation. The project development,
+preview, production, and Windows automatic-startup commands set
+`STUDY_HUB_AI_ENABLED=1` in the server process. The flag enables the local
+routes but does not activate provider requests. Dispatch additionally requires
+successful model checks, owner confirmations, active gates, and fresh approval
+of the exact payload. Local fallbacks continue working without a key.
+Automated tests use mocked providers and never contact Google.
 
 The owner reports that Google confirmed the intended personal, single-user
 coursework use. No written response was available in the project files, so
@@ -116,13 +117,11 @@ npm ci
 npm run dev
 ```
 
-Gemini setup and generation are disabled by default. To enable the optional
-local AI routes for a PowerShell session, set the flag before starting Vite:
-
-```powershell
-$env:STUDY_HUB_AI_ENABLED = "1"
-npm run dev
-```
+The development and preview commands set `STUDY_HUB_AI_ENABLED=1` in the
+Node process before Vite starts. The production `npm run start` command and
+the Windows automatic-startup script do the same. This enables the local AI
+proxy routes; it does not bypass key configuration, launch gates, explicit
+activation, budget limits, or fresh payload approval.
 
 The Vite development server is for development only. Available checks are:
 
@@ -169,8 +168,9 @@ configure a router.
 ## Windows automatic startup
 
 The startup integration creates one per-user shortcut in the current Windows
-account's Startup folder. It launches the built production server at sign-in;
-it does not run the development server and does not require VS Code to be open.
+account's Startup folder. It launches the built production server at sign-in,
+with `STUDY_HUB_AI_ENABLED=1` set for the Node process before it starts. It
+does not run the development server and does not require VS Code to be open.
 
 Install (safe to rerun; it updates the same project-specific shortcut):
 

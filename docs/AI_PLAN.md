@@ -321,7 +321,16 @@ created.
 **Structured log.** One JSON line per request on standard output, with
 exactly these fields: `method`, `path`, `status`, `durationMs`, `bytesIn`,
 `bytesOut`, `model`, `upstreamStatus`, `upstreamAttempted`, `errorCode`, and
-`gateVerdict` (`pass`, `blocked`, `not_evaluated`, or `disabled`).
+`gateVerdict` (`pass`, `blocked`, `not_evaluated`, or `disabled`). A dispatched
+provider response also adds an optional `providerDiagnostic` object with only
+bounded structural values: `jsonParsed`, `rootIsObject`, `statusPresent`,
+`statusRecognized`, `statusValue` (a known status label, `other`, or `null`),
+`generatedTextFieldPresent`, `generatedOutputEmpty` (a boolean or `null`), and
+`providerErrorObjectPresent`, plus a `classification` of `completed`,
+`incomplete`, `failed`, or `unexpected`. When a request is dispatched, `model`
+is recorded from the prepared payload even if the response fails. The
+diagnostic never contains response text, provider messages, headers, prompts,
+study material, or credentials.
 
 **Historical Phase 1 state.** At the end of Phase 1 the provider was
 unconfigured and activation disabled. Phase 5 adds the provider and local
@@ -776,6 +785,19 @@ cap that includes thinking tokens, so a response can be truncated. It maps to
 **HTTP 200** with `ok: false`, because the provider did answer and the
 truncated output is still returned in `outputText`.
 
+The synchronous, single-attempt client reports Interactions API
+`in_progress`, `requires_action`, and `requires_continuation` statuses as
+`upstream_error`. It does not poll, request tool action, or continue an
+interaction automatically. A `cancelled` interaction is a terminal status and is
+reported as a failed upstream response (`upstream_error`).
+
+A `completed` response whose recognized generated text is empty or
+whitespace-only is treated as an unexpected provider response and reported as
+`upstream_error`. Empty output is never returned as a successful generation.
+The same rule applies to every extraction path: `steps[]` model-output text,
+the SDK-shaped top-level `output_text` fallback, and legacy `outputs[]` text
+items.
+
 ### 9.4 Budget and reset
 
 - The counter is local and server-enforced.
@@ -848,6 +870,26 @@ are rejected with a deterministic reason before dispatch.
 - `max_output_tokens` is a hard cap that **includes thinking tokens**, so
   `status: "incomplete"` is a normal outcome.
 - `store:false` is always sent.
+
+### 10.4 Response shape
+
+The Interactions API returns generated text inside `steps[]`:
+
+- Only steps with `type: "model_output"` are inspected.
+- Inside a `model_output` step, only `content[]` items with `type: "text"` and a
+  string `text` contribute output.
+- Multiple model-output steps and text items are concatenated in their original
+  order.
+- Thought summaries, function calls, search steps, and all other step or content
+  types are ignored.
+
+For compatibility with synthetic tests and older shapes, the parser falls back
+to the SDK-shaped top-level `output_text` string and then to legacy `outputs[]`
+text items when no `model_output` text is present. The legacy `outputs[]` schema
+was removed from the Interactions API on **June 8, 2026**; the fallback is kept
+only as a defensive path and is not expected to be used by the live API.
+Response bodies are never logged; the bounded `providerDiagnostic` records only
+structural facts derived from the same extraction result.
 
 ## 11. Architecture
 

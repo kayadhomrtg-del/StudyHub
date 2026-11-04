@@ -7,7 +7,11 @@
  */
 
 import type { AiProvider, AiProviderResult } from "../provider";
-import type { AiErrorCode, AiProviderPayload } from "../types";
+import type {
+  AiErrorCode,
+  AiProviderDiagnostic,
+  AiProviderPayload,
+} from "../types";
 
 export interface FakeProviderOptions {
   outputText?: string;
@@ -17,6 +21,7 @@ export interface FakeProviderOptions {
   message?: string;
   dispatched?: boolean;
   connectionOk?: boolean;
+  diagnostic?: AiProviderDiagnostic;
 }
 
 export interface FakeProvider extends AiProvider {
@@ -80,6 +85,9 @@ export function createFakeProvider(
           status: "failed",
           code: options.code ?? "upstream_error",
           message: options.message ?? "The fake provider failed.",
+          ...(options.diagnostic === undefined
+            ? {}
+            : { diagnostic: options.diagnostic }),
         };
       }
 
@@ -95,6 +103,9 @@ export function createFakeProvider(
                 options.message ?? "The fake provider returned a truncated response.",
             }
           : {}),
+        ...(options.diagnostic === undefined
+          ? {}
+          : { diagnostic: options.diagnostic }),
       };
     },
   };

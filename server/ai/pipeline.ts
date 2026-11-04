@@ -23,7 +23,7 @@ import {
   validateSendRequest,
   type AiRawBody,
 } from "./requestValidation";
-import type { AiErrorCode } from "./types";
+import type { AiErrorCode, AiProviderDiagnostic } from "./types";
 
 export interface AiPipelineDependencies {
   provider: AiProvider;
@@ -47,6 +47,10 @@ export type AiPipelineOutcome<T> =
       gateBlocked: boolean;
       /** Present only for `incomplete`, which carries the truncated output. */
       outputText?: string;
+      /** Bounded provider response structure; never contains response content. */
+      diagnostic?: AiProviderDiagnostic;
+      /** The configured model, when a dispatch was attempted. */
+      model?: string;
     };
 
 function failure(
@@ -56,6 +60,7 @@ function failure(
   upstreamStatus: number | null = null,
   outputText?: string,
   gateBlocked = false,
+  details?: { diagnostic?: AiProviderDiagnostic; model?: string },
 ): AiPipelineOutcome<never> {
   return {
     ok: false,
@@ -65,6 +70,10 @@ function failure(
     upstreamStatus,
     gateBlocked,
     ...(outputText === undefined ? {} : { outputText }),
+    ...(details?.diagnostic === undefined
+      ? {}
+      : { diagnostic: details.diagnostic }),
+    ...(details?.model === undefined ? {} : { model: details.model }),
   };
 }
 
@@ -130,6 +139,7 @@ export async function runSendPipeline(
     outputText: string;
     status: "complete" | "incomplete";
     upstreamStatus: number | null;
+    diagnostic?: AiProviderDiagnostic;
   }>
 > {
   const gates = await readAndEvaluateGates(deps.gateArtifactPath, deps.now());
@@ -182,6 +192,7 @@ export async function runSendPipeline(
     return failure(charged.code, charged.reason);
   }
 
+  const model = lookup.entry.payload.model;
   const result = await deps.provider.send(lookup.entry.payload);
 
   if (!result.dispatched) {
@@ -199,6 +210,9 @@ export async function runSendPipeline(
       result.message ?? "The provider request failed.",
       true,
       result.upstreamStatus,
+      undefined,
+      false,
+      { model, diagnostic: result.diagnostic },
     );
   }
 
@@ -209,16 +223,21 @@ export async function runSendPipeline(
       true,
       result.upstreamStatus,
       result.outputText ?? "",
+      false,
+      { model, diagnostic: result.diagnostic },
     );
   }
 
   return {
     ok: true,
     value: {
-      model: lookup.entry.payload.model,
+      model,
       outputText: result.outputText ?? "",
       status: "complete",
       upstreamStatus: result.upstreamStatus,
+      ...(result.diagnostic === undefined
+        ? {}
+        : { diagnostic: result.diagnostic }),
     },
   };
 }

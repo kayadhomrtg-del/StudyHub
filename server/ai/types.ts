@@ -113,6 +113,43 @@ export type AiGateVerdictLabel =
   | "not_evaluated"
   | "disabled";
 
+/** Interaction status values that StudyHub can name safely in a log. */
+export type AiProviderStatusValue =
+  | "completed"
+  | "incomplete"
+  | "failed"
+  | "cancelled"
+  | "in_progress"
+  | "requires_action"
+  | "requires_continuation"
+  | "other";
+
+/** Classification produced from a bounded inspection of a provider response. */
+export type AiProviderResponseClassification =
+  | "completed"
+  | "incomplete"
+  | "failed"
+  | "unexpected";
+
+/**
+ * Bounded structural diagnostics for a provider response.
+ *
+ * Every value is a boolean, a fixed status label, or `other`/`null`. This
+ * object never carries response text, provider messages, headers, prompts,
+ * study material, or credentials.
+ */
+export interface AiProviderDiagnostic {
+  jsonParsed: boolean;
+  rootIsObject: boolean;
+  statusPresent: boolean;
+  statusRecognized: boolean;
+  statusValue: AiProviderStatusValue | null;
+  generatedTextFieldPresent: boolean;
+  generatedOutputEmpty: boolean | null;
+  providerErrorObjectPresent: boolean;
+  classification: AiProviderResponseClassification;
+}
+
 /** The exact request body that would be sent upstream. */
 export interface AiProviderPayload {
   model: string;

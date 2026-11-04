@@ -62,6 +62,7 @@ import {
   type AiErrorBody,
   type AiErrorCode,
   type AiGateVerdictLabel,
+  type AiProviderDiagnostic,
 } from "./types";
 
 export interface AiHandlerOptions {
@@ -215,6 +216,7 @@ async function handleAiRequest(context: HandleContext): Promise<void> {
   let upstreamAttempted = false;
   let errorCode: AiErrorCode | null = null;
   let gateVerdict: AiGateVerdictLabel = "not_evaluated";
+  let providerDiagnostic: AiProviderDiagnostic | undefined;
 
   const respond = (status: number, body: unknown): void => {
     bytesOut = sendJson(res, status, body);
@@ -249,6 +251,7 @@ async function handleAiRequest(context: HandleContext): Promise<void> {
       upstreamAttempted,
       errorCode,
       gateVerdict,
+      ...(providerDiagnostic === undefined ? {} : { providerDiagnostic }),
     };
     writeAiRequestLog(context.logStream, entry);
   };
@@ -427,6 +430,8 @@ async function handleAiRequest(context: HandleContext): Promise<void> {
   if (!sent.ok) {
     upstreamStatus = sent.upstreamStatus;
     upstreamAttempted = sent.upstreamAttempted;
+    model = sent.model ?? model;
+    providerDiagnostic = sent.diagnostic;
     gateVerdict = sent.gateBlocked ? "blocked" : "pass";
     respondError(sent.code, sent.message, sent.upstreamAttempted, {
       outputText: sent.outputText,
@@ -438,6 +443,7 @@ async function handleAiRequest(context: HandleContext): Promise<void> {
   gateVerdict = "pass";
   model = sent.value.model;
   upstreamStatus = sent.value.upstreamStatus;
+  providerDiagnostic = sent.value.diagnostic;
   respond(200, {
     ok: true,
     status: sent.value.status,

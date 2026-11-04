@@ -6,7 +6,11 @@
  * never key material.
  */
 
-import type { AiErrorCode, AiGateVerdictLabel } from "./types";
+import type {
+  AiErrorCode,
+  AiGateVerdictLabel,
+  AiProviderDiagnostic,
+} from "./types";
 
 export interface AiRequestLogEntry {
   method: string;
@@ -20,6 +24,8 @@ export interface AiRequestLogEntry {
   upstreamAttempted: boolean;
   errorCode: AiErrorCode | null;
   gateVerdict: AiGateVerdictLabel;
+  /** Bounded provider response structure; never contains response content. */
+  providerDiagnostic?: AiProviderDiagnostic;
 }
 
 export interface AiLogStream {

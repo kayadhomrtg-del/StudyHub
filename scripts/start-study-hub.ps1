@@ -59,6 +59,7 @@ try {
   }
 
   $arguments = "`"$($context.ViteCli)`" preview --host 127.0.0.1 --port $Port"
+  $env:STUDY_HUB_AI_ENABLED = "1"
   try {
     $serverProcess = Start-Process `
       -FilePath $context.NodePath `
