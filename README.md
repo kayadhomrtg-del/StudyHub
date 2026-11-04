@@ -1,5 +1,9 @@
 ﻿# College Study Hub
 
+<p align="center">
+  <img src="docs/images/studyhub-hero.svg" alt="College Study Hub dashboard illustration" width="100%" />
+</p>
+
 <div align="center">
 
   <img src="https://img.shields.io/badge/Local-first-Study%20Workspace-0ea5e9?style=for-the-badge" alt="Local-first study workspace" />
@@ -18,6 +22,13 @@
 </div>
 
 StudyHub is a local-first study workspace for organizing college modules, course materials, notes, tasks, study sessions, and backups. It runs entirely in the browser with Dexie/IndexedDB, has no account system or cloud sync, and keeps your study data on-device unless you explicitly export a backup. The optional AI workflow uses a same-machine loopback proxy only after configuration, activation, and per-request approval.
+
+<p align="center">
+  <a href="#quick-start">Get started</a> ·
+  <a href="#core-features">Explore features</a> ·
+  <a href="#privacy-data-and-backups">Privacy & data</a> ·
+  <a href="#development-and-quality-checks">Run checks</a>
+</p>
 
 ## Why it exists
 
@@ -38,6 +49,27 @@ StudyHub is a local-first study workspace for organizing college modules, course
 - Plan study sessions and guided recall from linked material
 - Export full or module-scoped ZIP backups and restore them safely
 - Run the app shell offline after a successful online load in a supporting browser
+
+## How it works
+
+```mermaid
+flowchart LR
+    learner([You]) --> app[StudyHub in your browser]
+    app <--> data[(IndexedDB on this device)]
+    app --> extract[Local material extraction]
+    extract --> prepare[Local proxy prepares request]
+    prepare --> review[Review exact payload]
+    review -->|Approve this request| gates{All gates pass?}
+    gates -->|Yes| gemini[Gemini through loopback proxy]
+    gates -->|No| local[Stay local or use fallback]
+    app -->|Guided recall| recall[Local study session]
+    recall --> data
+```
+
+Study records and imported files stay in the current browser profile and origin.
+Optional provider requests are a separate, explicit path: selected extracted
+text is prepared locally, shown for review, and sent only after fresh approval
+and all runtime gates pass.
 
 ## Optional Gemini AI support
 

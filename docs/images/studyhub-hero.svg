@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">College Study Hub</title>
+  <desc id="description">A colorful illustration of a local-first study dashboard with course cards, notes, a planner, and study materials.</desc>
+  <defs>
+    <linearGradient id="background" x1="70" y1="30" x2="1090" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101A37"/>
+      <stop offset="1" stop-color="#172554"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#67E8F9"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#C4B5FD"/>
+      <stop offset="1" stop-color="#818CF8"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#A7F3D0"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dy="8"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope=".18"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="420" rx="28" fill="url(#background)"/>
+  <circle cx="1070" cy="50" r="155" fill="#4F46E5" fill-opacity=".12"/>
+  <circle cx="150" cy="420" r="210" fill="#06B6D4" fill-opacity=".1"/>
+  <path d="M0 335C195 265 310 395 487 345s307-145 452-98 186 63 261 23v150H0V335Z" fill="#0B1229" fill-opacity=".36"/>
+
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <g transform="translate(72 72)">
+      <rect width="54" height="54" rx="17" fill="url(#cyan)"/>
+      <path d="M14 18.5c7.5-2.8 13.2-1.6 17 2.2 3.8-3.8 9.5-5 17-2.2v19c-7.5-2.8-13.2-1.6-17 2.2-3.8-3.8-9.5-5-17-2.2v-19Z" stroke="#0F172A" stroke-width="2.8" stroke-linejoin="round"/>
+      <path d="M31 21v19" stroke="#0F172A" stroke-width="2.8"/>
+      <text x="72" y="25" fill="#A5F3FC" font-size="13" font-weight="700" letter-spacing="2.1">YOUR PERSONAL STUDY SPACE</text>
+      <text x="70" y="77" fill="#F8FAFC" font-size="48" font-weight="750" letter-spacing="-1.5">Study smarter,</text>
+      <text x="70" y="132" fill="#67E8F9" font-size="48" font-weight="750" letter-spacing="-1.5">locally.</text>
+      <text x="72" y="169" fill="#CBD5E1" font-size="17">Courses, notes, plans and materials — organized on your device.</text>
+      <g transform="translate(72 198)">
+        <rect width="126" height="31" rx="15.5" fill="#FFFFFF" fill-opacity=".09" stroke="#FFFFFF" stroke-opacity=".14"/>
+        <circle cx="17" cy="15.5" r="4" fill="#34D399"/>
+        <text x="29" y="20" fill="#E2E8F0" font-size="12" font-weight="600">LOCAL-FIRST</text>
+        <rect x="137" width="115" height="31" rx="15.5" fill="#FFFFFF" fill-opacity=".09" stroke="#FFFFFF" stroke-opacity=".14"/>
+        <path d="M153 12v7m-3.5-3.5h7" stroke="#A5B4FC" stroke-width="1.8" stroke-linecap="round"/>
+        <text x="165" y="20" fill="#E2E8F0" font-size="12" font-weight="600">OFFLINE-READY</text>
+        <rect x="263" width="118" height="31" rx="15.5" fill="#FFFFFF" fill-opacity=".09" stroke="#FFFFFF" stroke-opacity=".14"/>
+        <path d="M278 12.5h10v7h-10zM281 10h4" stroke="#F0ABFC" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="294" y="20" fill="#E2E8F0" font-size="12" font-weight="600">YOURS TO BACK UP</text>
+      </g>
+    </g>
+
+    <g filter="url(#shadow)" transform="translate(700 53)">
+      <rect width="430" height="314" rx="19" fill="#F8FAFC"/>
+      <path d="M19 0h392a19 19 0 0 1 19 19v27H0V19A19 19 0 0 1 19 0Z" fill="#EEF2FF"/>
+      <circle cx="25" cy="23" r="4" fill="#F87171"/>
+      <circle cx="40" cy="23" r="4" fill="#FBBF24"/>
+      <circle cx="55" cy="23" r="4" fill="#34D399"/>
+      <rect x="88" y="14" width="255" height="18" rx="9" fill="#FFFFFF" fill-opacity=".8"/>
+      <text x="100" y="27" fill="#64748B" font-size="9">my-study-space.local</text>
+
+      <rect x="17" y="63" width="112" height="234" rx="11" fill="#F1F5F9"/>
+      <rect x="30" y="77" width="21" height="21" rx="7" fill="#DBEAFE"/>
+      <path d="M35 83c3-1 5-.3 6.5 1 1.5-1.3 3.5-2 6.5-1v8c-3-1-5-.3-6.5 1-1.5-1.3-3.5-2-6.5-1v-8Z" stroke="#2563EB" stroke-width="1.4" stroke-linejoin="round"/>
+      <rect x="58" y="81" width="56" height="5" rx="2.5" fill="#475569"/>
+      <rect x="58" y="90" width="39" height="4" rx="2" fill="#CBD5E1"/>
+      <rect x="29" y="118" width="86" height="24" rx="7" fill="#DBEAFE"/>
+      <rect x="38" y="126" width="7" height="7" rx="2" fill="#3B82F6"/>
+      <rect x="51" y="127" width="50" height="4" rx="2" fill="#1E40AF"/>
+      <g fill="#94A3B8">
+        <rect x="38" y="157" width="8" height="8" rx="2"/>
+        <rect x="53" y="159" width="48" height="4" rx="2"/>
+        <rect x="38" y="181" width="8" height="8" rx="2"/>
+        <rect x="53" y="183" width="39" height="4" rx="2"/>
+        <rect x="38" y="205" width="8" height="8" rx="2"/>
+        <rect x="53" y="207" width="45" height="4" rx="2"/>
+        <rect x="38" y="229" width="8" height="8" rx="2"/>
+        <rect x="53" y="231" width="34" height="4" rx="2"/>
+      </g>
+      <rect x="147" y="63" width="266" height="58" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="162" y="84" fill="#64748B" font-size="9" font-weight="600" letter-spacing=".8">TUESDAY, 12 MAY</text>
+      <text x="162" y="105" fill="#0F172A" font-size="16" font-weight="700">Good afternoon, Alex</text>
+      <circle cx="385" cy="92" r="17" fill="#E0E7FF"/>
+      <text x="379" y="97" fill="#4338CA" font-size="12" font-weight="700">A</text>
+
+      <rect x="147" y="132" width="128" height="91" rx="10" fill="#EFF6FF"/>
+      <rect x="160" y="145" width="24" height="24" rx="8" fill="#DBEAFE"/>
+      <path d="M166 151h12v12h-12zM169 148h6" stroke="#2563EB" stroke-width="1.4" stroke-linejoin="round"/>
+      <text x="160" y="185" fill="#1E3A8A" font-size="10" font-weight="700">BIOLOGY</text>
+      <text x="160" y="201" fill="#64748B" font-size="9">4 materials · 2 notes</text>
+      <rect x="285" y="132" width="128" height="91" rx="10" fill="#F5F3FF"/>
+      <rect x="298" y="145" width="24" height="24" rx="8" fill="#EDE9FE"/>
+      <path d="M304 151c4-2 7-1 9 1 2-2 5-3 9-1v12c-4-2-7-1-9 1-2-2-5-3-9-1v-12Z" stroke="#7C3AED" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M313 152v12" stroke="#7C3AED" stroke-width="1.4"/>
+      <text x="298" y="185" fill="#4C1D95" font-size="10" font-weight="700">PSYCHOLOGY</text>
+      <text x="298" y="201" fill="#64748B" font-size="9">6 materials · 1 task</text>
+
+      <rect x="147" y="234" width="266" height="63" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="160" y="246" width="30" height="37" rx="7" fill="#ECFDF5"/>
+      <text x="166" y="260" fill="#059669" font-size="8" font-weight="700">MAY</text>
+      <text x="168" y="276" fill="#065F46" font-size="13" font-weight="700">12</text>
+      <text x="202" y="255" fill="#334155" font-size="10" font-weight="700">Review cell structure</text>
+      <text x="202" y="270" fill="#64748B" font-size="9">Biology · 25 min</text>
+      <rect x="202" y="279" width="104" height="5" rx="2.5" fill="#E2E8F0"/>
+      <rect x="202" y="279" width="66" height="5" rx="2.5" fill="url(#mint)"/>
+      <rect x="371" y="252" width="27" height="27" rx="8" fill="#ECFDF5"/>
+      <path d="m379 265 4 4 8-9" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>
