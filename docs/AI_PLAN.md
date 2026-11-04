@@ -839,8 +839,16 @@ if they did.
 
 | Purpose | Provisional model | Verified from the public catalogue |
 | --- | --- | --- |
-| Question and answer | `gemini-3.8-flash` | Model code confirmed; input limit 1,048,576 tokens, output limit 65,536 tokens; thinking `low`, `medium`, `high` supported — `minimal` is **not** supported and returns an error. |
+| Question and answer | `gemini-3.5-flash-lite` | Model code confirmed; input limit 1,048,576 tokens, output limit 65,536 tokens; structured outputs and thinking supported. |
 | Summary and quiz | `gemini-3.5-flash-lite` | Model code confirmed; input limit 1,048,576 tokens, output limit 65,536 tokens. |
+
+**Historical note.** Question and answer was configured with `gemini-3.8-flash`
+until 2026-11-04. Two consecutive live Q&A attempts on that model returned
+upstream HTTP 503, so the Q&A assignment was changed to
+`gemini-3.5-flash-lite`, the model Summary had already used successfully.
+Summary and quiz assignments were not changed. Later references to Gemini 3.8
+Flash in this document describe that earlier configuration or the public
+catalogue; they are not the current assignment.
 
 Both are **provisional**. Public catalogue availability does **not** guarantee
 availability or quota for a given Google Cloud project. The actual models must
@@ -865,8 +873,9 @@ are rejected with a deterministic reason before dispatch.
   `response_format{type, mime_type, schema}`, and `store:false`.
 - `temperature`, `top_p`, and `top_k` are **never sent**; they are ignored by
   current Gemini models.
-- `thinking_level` accepts only `low`, `medium`, `high`. `minimal` errors on
-  Gemini 3.8 Flash.
+- `thinking_level` accepts only `low`, `medium`, `high`; `minimal` is rejected
+  locally before dispatch. Historically, `minimal` was also rejected by
+  Gemini 3.8 Flash at the provider level.
 - `max_output_tokens` is a hard cap that **includes thinking tokens**, so
   `status: "incomplete"` is a normal outcome.
 - `store:false` is always sent.

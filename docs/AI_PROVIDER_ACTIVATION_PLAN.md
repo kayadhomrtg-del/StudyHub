@@ -75,7 +75,7 @@ The current configuration declares these **provisional** model assignments:
 |---|---|---|
 | Summary | `gemini-3.5-flash-lite` | 100,000 input characters; 1,024 output tokens (4,096 maximum allowed) |
 | Quiz | `gemini-3.5-flash-lite` | 100,000 input characters; 2,048 output tokens (8,192 maximum allowed) |
-| Q&A | `gemini-3.8-flash` | 50,000 input characters; 2,048 output tokens (8,192 maximum allowed) |
+| Q&A | `gemini-3.5-flash-lite` | 50,000 input characters; 2,048 output tokens (8,192 maximum allowed) |
 
 The proxy also caps raw request bodies and serialized payloads at 1 MiB and
 prepared payloads expire after five minutes. These local values do not prove
@@ -87,7 +87,10 @@ budget.
 
 The current public model catalogue lists `gemini-3.5-flash-lite` and
 `gemini-3.8-flash` as stable models, but that does not prove access or quota in
-this user's project. Google's Interactions API documentation identifies that
+this user's project. Only `gemini-3.5-flash-lite` is currently assigned to an
+application feature (Summary, Quiz, and Q&A); `gemini-3.8-flash` was the Q&A
+assignment until 2026-11-04 and remains a catalogue entry only. Google's
+Interactions API documentation identifies that
 API as Beta and warns that features and schemas may change. The setup metadata
 check verifies the model names only; it does not exercise the Interactions
 endpoint or guarantee a successful generation. Recheck the official API

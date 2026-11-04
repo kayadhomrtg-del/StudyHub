@@ -116,7 +116,7 @@ export const AI_FEATURE_CONFIGS: Record<AiFeature, AiFeatureConfig> = {
   },
   qa: {
     feature: "qa",
-    model: "gemini-3.8-flash",
+    model: "gemini-3.5-flash-lite",
     thinkingLevel: "low",
     maxOutputTokens: 2048,
     maxAllowedOutputTokens: 8192,

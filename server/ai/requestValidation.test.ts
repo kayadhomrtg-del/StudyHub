@@ -229,7 +229,7 @@ describe("prepared payload", () => {
     if (!built.ok) {
       return;
     }
-    expect(built.value.model).toBe("gemini-3.8-flash");
+    expect(built.value.model).toBe("gemini-3.5-flash-lite");
   });
 });
 

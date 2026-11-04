@@ -70,11 +70,8 @@ describe("Gemini provider", () => {
     const result = await provider.testConnection();
 
     expect(result.ok).toBe(true);
-    expect(result.models).toEqual([
-      "gemini-3.5-flash-lite",
-      "gemini-3.8-flash",
-    ]);
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(result.models).toEqual(["gemini-3.5-flash-lite"]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
     for (const [input, init] of fetcher.mock.calls) {
       expect(String(input)).toMatch(
         /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\//,
